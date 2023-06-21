@@ -39,3 +39,22 @@ tomli             2.0.1
 tomlkit           0.11.8
 typing_extensions 4.6.3
 wrapt             1.15.0
+
+SWS:
+
+Package       Version
+------------- --------
+click            8.1.3
+colorama         0.4.6
+numpy            1.24.3
+opencv-python    4.7.0.72
+pip              23.1.2
+PyQt6            6.4.2
+pyqt6-plugins    6.4.2.2.3
+PyQt6-Qt6        6.4.3
+PyQt6-sip        13.5.1
+pyqt6-tools      6.4.2.3.3
+python-dotenv    1.0.0
+qt6-applications 6.4.3.2.3
+qt6-tools        6.4.3.1.3
+setuptools       56.0.0
