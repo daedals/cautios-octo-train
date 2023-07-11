@@ -45,6 +45,7 @@ ApplicationWindow {
 
 
 import QtQuick
+import QtQuick.Controls
 import QtLocation
 import QtPositioning
 
@@ -64,7 +65,7 @@ Window {
     }
 
     Map {
-        id: map
+        id: mapItem
         anchors.fill: parent
         plugin: mapPlugin
         center: QtPositioning.coordinate(59.91, 10.75) // Oslo
