@@ -1,3 +1,4 @@
+/*
 import QtQuick
 import QtQuick.Controls
 import QtLocation 
@@ -22,7 +23,7 @@ ApplicationWindow {
     }
 
     Map {
-        id: mapItem
+        id: map
         anchors.fill: parent
         plugin: osmPlugin
         center: QtPositioning.coordinate(51.5074, -0.1278) // London
@@ -42,17 +43,15 @@ ApplicationWindow {
         }
     }
 }
-
-
+*/
 import QtQuick
 import QtQuick.Controls
 import QtLocation
 import QtPositioning
 
 Window {
-    ...
     Plugin {
-        id: mapPlugin
+        id: osmPlugin
         name: "osm"
         PluginParameter {
             name: "osm.mapping.providersrepository.disabled"
@@ -65,10 +64,10 @@ Window {
     }
 
     Map {
-        id: mapItem
+        id: map
         anchors.fill: parent
-        plugin: mapPlugin
-        center: QtPositioning.coordinate(59.91, 10.75) // Oslo
+        plugin: osmPlugin
+        center: QtPositioning.coordinate(59.91, 10.75)
         zoomLevel: 14
         property geoCoordinate startCentroid
 

@@ -38,13 +38,13 @@ if service_provider.error() != QGeoServiceProvider.NoError:
 # app.setGeoServiceProvider(service_provider)
 
 # Load the QML file
-engine.load(QUrl.fromLocalFile("map.qml"))
+engine.load(QUrl.fromLocalFile(".\data\map.qml"))
 
 # Retrieve the root object from the QML file
 root = engine.rootObjects()[0]
 
 # Retrieve the Map object from the QML file
-map_object = root.findChild(QObject, "mapItem")
+map_object = root.findChild(QObject, "map")
 
 # Check if the map object is valid
 if map_object is not None:
