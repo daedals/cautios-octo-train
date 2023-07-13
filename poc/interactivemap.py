@@ -43,6 +43,8 @@ engine.load(QUrl.fromLocalFile(".\data\map.qml"))
 # Retrieve the root object from the QML file
 root = engine.rootObjects()[0]
 
+print(root)
+
 # Retrieve the Map object from the QML file
 map_object = root.findChild(QObject, "map")
 
