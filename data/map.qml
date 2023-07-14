@@ -1,58 +1,29 @@
-/*
-import QtQuick
-import QtQuick.Controls
-import QtLocation 
-import QtPositioning
 
-ApplicationWindow {
-    visible: false
-    width: 800
-    height: 600
 
-    Plugin {
-        id: osmPlugin
-        name: "osm"
-        PluginParameter {
-            name: "osm.mapping.providersrepository.disabled"
-            value: "true"
-        }
-        PluginParameter {
-            name: "osm.mapping.providersrepository.address"
-            value: "http://maps-redirect.qt.io/osm/5.6/"
-        }
-    }
 
-    Map {
-        id: map
-        anchors.fill: parent
-        plugin: osmPlugin
-        center: QtPositioning.coordinate(51.5074, -0.1278) // London
-        zoomLevel: 10
-
-        MapQuickItem {
-            id: markerItem
-            anchorPoint.x: marker.width / 2
-            anchorPoint.y: marker.height
-            sourceItem: marker
-            coordinate: QtPositioning.coordinate(51.5074, -0.1278) // London
-        }
-
-        Image {
-            id: marker
-            source: "./media/marker.png" // Path to your marker image
-        }
-    }
-}
-*/
 import QtQuick
 import QtQuick.Controls
 import QtLocation
 import QtPositioning
 
-Window {
+ApplicationWindow {
+    id: window
+    width: 800
+    height: 600
+    visible: true
+    title: "GPS Data"
+
+    property QtObject mapManager
+
     Plugin {
         id: osmPlugin
         name: "osm"
+
+        // workaround for following Error:
+        // QGeoTileProviderOsm: Tileserver disabled at  QUrl("http://maps-redirect.qt.io/osm/5.8/satellite")
+        // QGeoTileFetcherOsm: all providers resolved
+        // qt.network.ssl: QSslSocket::connectToHostEncrypted: TLS initialization failed
+        // found at https://forum.qt.io/topic/118089/error-when-running-minimal-map-example
         PluginParameter {
             name: "osm.mapping.providersrepository.disabled"
             value: "true"
@@ -63,27 +34,46 @@ Window {
         }
     }
 
+    function addMarker(latitude, longitude)
+    {
+        var Component = Qt.createComponent(".\\media\\marker.png")
+        var item = Component.createObject(window, {
+                                              coordinate: QtPositioning.coordinate(latitude, longitude)
+                                          })
+        map.addMapItem(item)
+    }
+
     Map {
-        id: map
+        id: mapItem
+        activeMapType: supportedMapTypes[0]
+
         anchors.fill: parent
         plugin: osmPlugin
-        center: QtPositioning.coordinate(59.91, 10.75)
+        center: QtPositioning.coordinate(63.43674 ,10.40070)
         zoomLevel: 14
+
+        onSupportedMapTypesChanged: {
+            console.log("Supported MapType:");
+            for (var i = 0; i < mapItem.supportedMapTypes.length; i++) {
+                console.log(i, supportedMapTypes[i].name);
+            }
+        }
+
         property geoCoordinate startCentroid
 
         PinchHandler {
             id: pinch
             target: null
             onActiveChanged: if (active) {
-                map.startCentroid = map.toCoordinate(pinch.centroid.position, false)
+                mapItem.startCentroid = mapItem.toCoordinate(pinch.centroid.position, false)
             }
             onScaleChanged: (delta) => {
-                map.zoomLevel += Math.log2(delta)
-                map.alignCoordinateToPoint(map.startCentroid, pinch.centroid.position)
+                mapItem.zoomLevel += Math.log2(delta)
+                mapItem.alignCoordinateToPoint(mapItem.startCentroid, pinch.centroid.position)
             }
             onRotationChanged: (delta) => {
-                map.bearing -= delta
-                map.alignCoordinateToPoint(map.startCentroid, pinch.centroid.position)
+                mapItem.bearing -= delta
+                mapItem.alignCoordinateToPoint(mapItem.startCentroid, pinch.centroid.position)
             }
             grabPermissions: PointerHandler.TakeOverForbidden
         }
@@ -101,17 +91,22 @@ Window {
         DragHandler {
             id: drag
             target: null
-            onTranslationChanged: (delta) => map.pan(-delta.x, -delta.y)
+            onTranslationChanged: (delta) => mapItem.pan(-delta.x, -delta.y)
         }
         Shortcut {
-            enabled: map.zoomLevel < map.maximumZoomLevel
+            enabled: mapItem.zoomLevel < mapItem.maximumZoomLevel
             sequence: StandardKey.ZoomIn
-            onActivated: map.zoomLevel = Math.round(map.zoomLevel + 1)
+            onActivated: mapItem.zoomLevel = Math.round(mapItem.zoomLevel + 1)
         }
         Shortcut {
-            enabled: map.zoomLevel > map.minimumZoomLevel
+            enabled: mapItem.zoomLevel > mapItem.minimumZoomLevel
             sequence: StandardKey.ZoomOut
-            onActivated: map.zoomLevel = Math.round(map.zoomLevel - 1)
+            onActivated: mapItem.zoomLevel = Math.round(mapItem.zoomLevel - 1)
         }
+    }
+
+    Connections {
+        target: mapManager
+        function onMarkerRequest(lat, lon) { console.log(lat, lon) }
     }
 }

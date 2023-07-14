@@ -1,10 +1,13 @@
+"""proof of concept for a module that changes json data from within a window"""
+
 import sys
 import json
 from PyQt6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QLabel, QLineEdit
-from PyQt6.QtCore import QFile
+# from PyQt6.QtCore import QFile
 
 
 class MainWindow(QMainWindow):
+    """main window class"""
     def __init__(self):
         super().__init__()
         self.setWindowTitle("JSON Editor")
@@ -15,18 +18,21 @@ class MainWindow(QMainWindow):
         self.setup_ui()
 
     def load_json(self):
+        """load data from json in static location"""
         try:
-            with open("data.json", "r") as file:
+            with open("data.json", "r", encoding=str) as file:
                 self.json_data = json.load(file)
         except FileNotFoundError:
             # If the file doesn't exist, create an empty JSON object
             self.json_data = {}
 
     def save_json(self):
-        with open("data.json", "w") as file:
+        """save data to json in static location of create if not available"""
+        with open("data.json", "w", encoding=str) as file:
             json.dump(self.json_data, file, indent=4)
 
     def setup_ui(self):
+        """main window ui setup"""
         # Create a central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -47,7 +53,7 @@ class MainWindow(QMainWindow):
         line_edit.textChanged.connect(lambda text: self.json_data.update({"name": text}))
 
     def closeEvent(self, event):
-        # Save the JSON data before closing the application
+        """Save the JSON data before closing the application"""
         self.save_json()
         event.accept()
 
