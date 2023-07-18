@@ -14,6 +14,7 @@ ApplicationWindow {
     title: "GPS Data"
 
     property QtObject mapManager
+    property int marker_size: 8
 
     Plugin {
         id: osmPlugin
@@ -34,13 +35,14 @@ ApplicationWindow {
         }
     }
 
+    // this is currently functionless since all markers are created before loading the map in the interactive map py
     function addMarker(latitude, longitude)
     {
-        var Component = Qt.createComponent(".\\media\\marker.png")
+        var Component = Qt.createComponent(".\\data\\marker.qml")
         var item = Component.createObject(window, {
                                               coordinate: QtPositioning.coordinate(latitude, longitude)
                                           })
-        map.addMapItem(item)
+        mapItem.addMapItem(item)
     }
 
     Map {
@@ -52,10 +54,29 @@ ApplicationWindow {
         center: QtPositioning.coordinate(63.43674 ,10.40070)
         zoomLevel: 14
 
+        // this is only to show supported map types for defisgn purposes
         onSupportedMapTypesChanged: {
             console.log("Supported MapType:");
             for (var i = 0; i < mapItem.supportedMapTypes.length; i++) {
                 console.log(i, supportedMapTypes[i].name);
+            }
+        }
+
+        // map item view, initialized in interactive map using mapmarkers.py
+        MapItemView {
+            model: markerModel
+            delegate: MapQuickItem{
+                anchorPoint: Qt.point(2.5, 2.5)
+                coordinate: QtPositioning.coordinate(markerPosition.x, markerPosition.y)
+                zoomLevel: 0
+                sourceItem: Rectangle{
+                    width:  marker_size
+                    height: marker_size
+                    radius: marker_size/2
+                    // border.color: "white"
+                    color: markerColor
+                    // border.width: 1
+                }
             }
         }
 
@@ -77,6 +98,7 @@ ApplicationWindow {
             }
             grabPermissions: PointerHandler.TakeOverForbidden
         }
+
         WheelHandler {
             id: wheel
             // workaround for QTBUG-87646 / QTBUG-112394 / QTBUG-112432:
@@ -88,16 +110,19 @@ ApplicationWindow {
             rotationScale: 1/120
             property: "zoomLevel"
         }
+
         DragHandler {
             id: drag
             target: null
             onTranslationChanged: (delta) => mapItem.pan(-delta.x, -delta.y)
         }
+
         Shortcut {
             enabled: mapItem.zoomLevel < mapItem.maximumZoomLevel
             sequence: StandardKey.ZoomIn
             onActivated: mapItem.zoomLevel = Math.round(mapItem.zoomLevel + 1)
         }
+
         Shortcut {
             enabled: mapItem.zoomLevel > mapItem.minimumZoomLevel
             sequence: StandardKey.ZoomOut
@@ -107,6 +132,31 @@ ApplicationWindow {
 
     Connections {
         target: mapManager
-        function onMarkerRequest(lat, lon) { console.log(lat, lon) }
+        function onMarkerRequest(lat, lon) { 
+            // console.log(lat, lon) 
+            addMarker(lat, lon)
+        }
+    }
+
+    Component {
+        id: mapcomponent
+        MapQuickItem {
+            id: marker
+            anchorPoint.x: image.width/4
+            anchorPoint.y: image.height
+            coordinate: position
+
+            MouseArea{
+                anchors.fill: parent
+                onClicked: {
+                    imageMarker.source = "qrc:/Images/Images/markerGreen.png"
+                    console.log("MapQuickItem clicked")}
+            }
+
+            sourceItem: Image {
+                id: imageMarker
+                source: "qrc:/Images/Images/markerRed.png"
+            }
+        }
     }
 }

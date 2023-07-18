@@ -1,86 +1,87 @@
 """proof of concept for a window with an interactable map from a qml file"""
 
 import sys
-from PySide6.QtCore import QUrl, QObject, Signal, SIGNAL
+from PySide6.QtCore import QUrl, QObject, Signal
 from PySide6.QtGui import QGuiApplication
-from PySide6.QtPositioning import QGeoCoordinate, QGeoShape
-# from PySide6.QtLocation import QGeoServiceProvider
 from PySide6.QtQml import QQmlApplicationEngine
+
+from gpsdata import GPSData
+from markermodel import MarkerModel, MarkerItem
 
 class MapManager(QObject):
     """Dummy class for communication with qml file"""
 
-    # def __init__(self) -> None:
-    #     super().__init__()
+    # Signal can be slotted in qml with function called onMarkerRequest
+    markerRequest = Signal(float, float)
 
-    onMarkerRequest = Signal(float, float)
-
-    def request_marker(self, lat: float, lon: float):
+    def request_marker(self, _lat: float, _lon: float):
         """Emits a custom signal to request marker placement on the map"""
-        # self.emit(SIGNAL("requestMarker(float, float)"), lat, lon)
-        self.onMarkerRequest.emit(lat, lon)
+        self.markerRequest.emit(_lat, _lon)
 
 
-def add_gps_data_points(_map_object):
-    """adds static gps data points to a map object"""
-    # Create GPS data points
-    gps_data_points = [
-        QGeoCoordinate(51.5074, -0.1278),  # London
-        QGeoCoordinate(40.7128, -74.0060),  # New York
-        QGeoCoordinate(48.8566, 2.3522),  # Paris
-        QGeoCoordinate(37.7749, -122.4194),  # San Francisco
-    ]
+    def add_gps_data_points(self, _gpsdata: GPSData): #, _map_object):
+        """adds gps data points to a map object"""
 
-    # Add data points to the map
-    for coordinate in gps_data_points:
-        shape = QGeoShape()
-        shape.addCoordinate(coordinate)
-        _map_object.addMapItem(shape)
+        # Add data points to the map
+        for coordinate in _gpsdata.list_of_coords():
+            # request a marker placement
+            self.request_marker(coordinate.latitude(), coordinate.longitude())
+            break
 
 
-# Create the application instance
-app = QGuiApplication([])
+if __name__ == '__main__':
+    import sys
 
-# Create the QML engine
-engine = QQmlApplicationEngine()
-engine.quit.connect(app.quit)
+    # Create the application instance
+    app = QGuiApplication([])
 
-# # Create the GeoServiceProvider to access map data
-# service_provider = QGeoServiceProvider("osm")
+    # Create the QML engine
+    engine = QQmlApplicationEngine()
+    engine.quit.connect(app.quit)
 
-# # Check if the provider is valid
-# if service_provider.error() != QGeoServiceProvider.NoError:
-#     app.quit()
+    # # Create the GeoServiceProvider to access map data
+    # service_provider = QGeoServiceProvider("osm")
 
-# Set the service provider for the application
-# app.setGeoServiceProvider(service_provider)
+    # # Check if the provider is valid
+    # if service_provider.error() != QGeoServiceProvider.NoError:
+    #     app.quit()
 
-# Load the QML file
-engine.load(QUrl.fromLocalFile(".\\data\\map.qml"))
+    # Set the service provider for the application
+    # app.setGeoServiceProvider(service_provider)
 
-# Retrieve the root object from the QML file
-root = engine.rootObjects()[0]
+    from PySide6.QtCore import QPointF
+    from PySide6.QtGui import QColor
 
-map_manager = MapManager()
+    gpsdata = GPSData()
+    file_path = './data/gps_spring.csv'
+    header, data = gpsdata.read_csv_data(file_path)
 
-root.setProperty("mapManager", map_manager)
+    model = MarkerModel()
 
-map_manager.request_marker(63.43674 ,10.40070)
+    i = 10000
+    for coordinate in gpsdata.data:
+        i -= 1
+        if i%2: 
+            continue
+        model.addMarker(MarkerItem(QPointF(coordinate.latitude(), coordinate.longitude()), QColor("red")))
+        # if i < 0:
+        #     break
 
-# # Retrieve the Map object from the QML file
-# map_object = root.findChild(QObject, "map")
+    engine.rootContext().setContextProperty('markerModel', model)
 
-# # Check if the map object is valid
-# if map_object is not None:
-#     print("hi")
-#     # Add GPS data points to the map
-#     add_gps_data_points(map_object)
-# else:
-#     print(":(")
-    
+    # Load the QML file
+    engine.load(QUrl.fromLocalFile(".\\data\\map.qml"))
 
-# Show the map
-# root.setProperty("visible", True)
+    # Retrieve the root object from the QML file
+    root = engine.rootObjects()[0]
 
-# Run the application event loop
-sys.exit(app.exec())
+    # Create a Map Manager as backend object
+    map_manager = MapManager()
+
+    # Set mapmanager in qml file
+    root.setProperty("mapManager", map_manager)
+
+
+
+
+    sys.exit(app.exec())
