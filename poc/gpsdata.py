@@ -16,26 +16,32 @@ class Coordinate:
         self.data = tuple([_tid, _lat, _lon, _speed, _course, _alt])
         self.coord = QGeoCoordinate(_lat, _lon, _alt)
 
+    @property
     def timeid(self) -> int:
         """ returns the time id """
         return self.data[0]
 
+    @property
     def latitude(self) -> float:
         """ returns latitude """
         return self.data[1]
 
+    @property
     def longitude(self) -> float:
         """ return longitude """
         return self.data[2]
 
+    @property
     def speed(self) -> int:
         """ returns the time id """
         return self.data[3]
 
+    @property
     def course(self) -> float:
         """ returns latitude """
         return self.data[4]
 
+    @property
     def altitude(self) -> float:
         """ return longitude """
         return self.data[5]
@@ -73,7 +79,7 @@ class GPSData:
 
                     # convert each string to a useful value
                     row_data = Coordinate(
-                        int(tid), # Time id
+                        int(int(tid)/100), # Time id
                         float(int(lat)) / 10**5, # latidute 
                         float(int(lon)) / 10**5, # longitude
                         float(int(speed)) / 10**2, # speed
