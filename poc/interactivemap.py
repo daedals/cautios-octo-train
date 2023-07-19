@@ -58,14 +58,8 @@ if __name__ == '__main__':
 
     model = MarkerModel()
 
-    i = 10000
     for coordinate in gpsdata.data:
-        i -= 1
-        if i%2: 
-            continue
         model.addMarker(MarkerItem(QPointF(coordinate.latitude(), coordinate.longitude()), QColor("red")))
-        # if i < 0:
-        #     break
 
     engine.rootContext().setContextProperty('markerModel', model)
 
