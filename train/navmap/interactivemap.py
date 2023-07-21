@@ -5,8 +5,8 @@ from PySide6.QtCore import QUrl, QObject, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
-from dataprep.gpsdata import GPSData
-from navmap.markermodel import MarkerModel, MarkerItem
+from gpsdata import GPSData
+from markermodel import MarkerModel, MarkerItem
 
 class MapManager(QObject):
     """Dummy class for communication with qml file"""
@@ -25,7 +25,7 @@ class MapManager(QObject):
         # Add data points to the map
         for coordinate in _gpsdata.list_of_coords():
             # request a marker placement
-            self.request_marker(coordinate.latitude(), coordinate.longitude())
+            self.request_marker(coordinate.latitude, coordinate.longitude)
             break
 
 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     model = MarkerModel()
 
     for coordinate in gpsdata.data:
-        model.addMarker(MarkerItem(QPointF(coordinate.latitude(), coordinate.longitude()), QColor("red")))
+        model.addMarker(MarkerItem(QPointF(coordinate.latitude, coordinate.longitude), QColor("red")))
 
     engine.rootContext().setContextProperty('markerModel', model)
 
