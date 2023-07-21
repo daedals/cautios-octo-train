@@ -1,9 +1,19 @@
+"""
+Window for displaying Linecharts
+"""
+
 import sys
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 import pyqtgraph as pg
 
 
 class LineChartApplication(QMainWindow):
+    """ Line chart window specifically for speed and altitude against time """
+
+    # signal when a point is clicked
+    scatterPointClicked = Signal(int)
+
     def __init__(self, time_list, speed_list, altitude_list):
         super().__init__()
 
@@ -61,7 +71,7 @@ class LineChartApplication(QMainWindow):
         # self.speed_plot.setYLink(self.altitude_plot)
 
     def on_point_clicked(self, _, points):
-        """ slotted method for interaction with point """
+        """ Slotted method for interaction with point """
 
         # Get the index of the clicked data point (middle)
         index = points[int(len(points)/2)].index()
@@ -69,9 +79,12 @@ class LineChartApplication(QMainWindow):
         # Print the corresponding time value to the console
         print(f"Time value of clicked data point: {self.time_list[index]}")
 
+        # Emit signal
+        self.scatterPointClicked.emit(index)
+
 
 if __name__ == "__main__":
-    from gpsdata import GPSData
+    from dataprep.gpsdata import GPSData
 
     gpsdata = GPSData()
     file_path = './data/gps_spring.csv'

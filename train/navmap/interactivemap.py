@@ -5,8 +5,8 @@ from PySide6.QtCore import QUrl, QObject, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
-from gpsdata import GPSData
-from markermodel import MarkerModel, MarkerItem
+from dataprep.gpsdata import GPSData
+from navmap.markermodel import MarkerModel, MarkerItem
 
 class MapManager(QObject):
     """Dummy class for communication with qml file"""
@@ -30,7 +30,6 @@ class MapManager(QObject):
 
 
 if __name__ == '__main__':
-    import sys
 
     # Create the application instance
     app = QGuiApplication([])
@@ -39,19 +38,11 @@ if __name__ == '__main__':
     engine = QQmlApplicationEngine()
     engine.quit.connect(app.quit)
 
-    # # Create the GeoServiceProvider to access map data
-    # service_provider = QGeoServiceProvider("osm")
-
-    # # Check if the provider is valid
-    # if service_provider.error() != QGeoServiceProvider.NoError:
-    #     app.quit()
-
-    # Set the service provider for the application
-    # app.setGeoServiceProvider(service_provider)
-
+    # import PointF and Color to create a marker
     from PySide6.QtCore import QPointF
     from PySide6.QtGui import QColor
 
+    # prepare GPS data
     gpsdata = GPSData()
     file_path = './data/gps_spring.csv'
     header, data = gpsdata.read_csv_data(file_path)
@@ -74,8 +65,5 @@ if __name__ == '__main__':
 
     # Set mapmanager in qml file
     root.setProperty("mapManager", map_manager)
-
-
-
 
     sys.exit(app.exec())
