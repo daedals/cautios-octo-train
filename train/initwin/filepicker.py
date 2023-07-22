@@ -56,6 +56,8 @@ class FilePickerApp(QMainWindow):
         if video_file:
             self._video_path = video_file
             self.video_path_textbox.setText(video_file)
+            return video_file
+        raise NameError()
 
     def open_gps_data_dialog(self):
         """ prompts user for path of gps data """

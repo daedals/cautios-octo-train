@@ -84,9 +84,9 @@ class LineChartApplication(QMainWindow):
 
 
 if __name__ == "__main__":
-    from navmap.gpsdata import GPSData
+    from navmap import gpsdata
 
-    gpsdata = GPSData()
+    gpsdata = gpsdata.GPSData()
     file_path = './data/gps_spring.csv'
     header, data = gpsdata.read_csv_data(file_path)
 

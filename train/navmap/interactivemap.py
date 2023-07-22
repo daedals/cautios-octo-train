@@ -55,7 +55,7 @@ if __name__ == '__main__':
     engine.rootContext().setContextProperty('markerModel', model)
 
     # Load the QML file
-    engine.load(QUrl.fromLocalFile(".\\data\\map.qml"))
+    engine.load(QUrl.fromLocalFile(".\\train\\navmap\\map.qml"))
 
     # Retrieve the root object from the QML file
     root = engine.rootObjects()[0]
