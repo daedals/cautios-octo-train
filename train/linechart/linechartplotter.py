@@ -2,13 +2,13 @@
 Window for displaying Linecharts
 """
 
-import sys
+# import sys
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QVBoxLayout, QWidget
 import pyqtgraph as pg
 
 
-class LineChartApplication(QMainWindow):
+class LineChartApplication(QWidget):
     """ Line chart window specifically for speed and altitude against time """
 
     # signal when a point is clicked
@@ -67,9 +67,6 @@ class LineChartApplication(QMainWindow):
         self.speed_scatter.sigClicked.connect(self.on_point_clicked)
         self.altitude_scatter.sigClicked.connect(self.on_point_clicked)
 
-        # Set the vertical scaling of the plots to be the same
-        # self.speed_plot.setYLink(self.altitude_plot)
-
     def on_point_clicked(self, _, points):
         """ Slotted method for interaction with point """
 
@@ -77,28 +74,7 @@ class LineChartApplication(QMainWindow):
         index = points[int(len(points)/2)].index()
 
         # Print the corresponding time value to the console
-        print(f"Time value of clicked data point: {self.time_list[index]}")
+        print(f"Time value of clicked data point: {self.time_list[index]} ({index})")
 
         # Emit signal
         self.scatterPointClicked.emit(index)
-
-
-if __name__ == "__main__":
-    from navmap import gpsdata
-
-    gpsdata = gpsdata.GPSData()
-    file_path = './data/gps_spring.csv'
-    header, data = gpsdata.read_csv_data(file_path)
-
-    # Example data (replace with your own lists)
-    time_list = [coordinate.timeid for coordinate in gpsdata.list_of_coords()]
-    speed_list = [coordinate.speed for coordinate in gpsdata.list_of_coords()]
-    altitude_list = [coordinate.altitude for coordinate in gpsdata.list_of_coords()]
-
-    app = QApplication(sys.argv)
-
-    # Create the application and show the window
-    window = LineChartApplication(time_list, speed_list, altitude_list)
-    window.show()
-
-    sys.exit(app.exec())

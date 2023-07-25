@@ -68,6 +68,7 @@ class FilePickerApp(QMainWindow):
         if gps_data_file:
             self._gps_data_path = gps_data_file
             self.gps_data_path_textbox.setText(gps_data_file)
+            return gps_data_file
 
     @property
     def video_path(self) -> str:

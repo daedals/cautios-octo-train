@@ -24,13 +24,13 @@ class MainWindow(filepicker.FilePickerApp, QMainWindow):
         _, data = self.gpsdata.read_csv_data(_filename)
 
         # open new window
-        self.linechart = linechartplotter.LineChartApplication(
-            [coordinate.timeid for coordinate in data.list_of_coords()],
-            [coordinate.speed for coordinate in data.list_of_coords()],
-            [coordinate.altitude for coordinate in data.list_of_coords()]
+        self.linechart_window = linechartplotter.LineChartApplication(
+            [coordinate.timeid for coordinate in self.gpsdata.list_of_coords()],
+            [coordinate.speed for coordinate in self.gpsdata.list_of_coords()],
+            [coordinate.altitude for coordinate in self.gpsdata.list_of_coords()]
         )
 
-        self.linechart.show()
+        self.linechart_window.show()
 
 
 
