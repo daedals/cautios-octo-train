@@ -1,7 +1,12 @@
+"""Contains class definitions for InteractableGraphicsView and ImageViewerWidget
+
+
+"""
+
 import sys
 from PySide6.QtCore import Signal, QLineF, QRectF
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, QGraphicsView, QGraphicsScene, QHBoxLayout
-from PySide6.QtGui import QPixmap, QPainter, QPen, QColor, QMouseEvent
+from PySide6.QtGui import QPixmap, QPen, QColor, QMouseEvent
 
 class InteractableGraphicsView(QGraphicsView):
     """Renders choosen key frame and handles mouse events for an interactable image
@@ -56,7 +61,7 @@ class InteractableGraphicsView(QGraphicsView):
     def mousePressEvent(self, event: QMouseEvent):
         """Function to handle mouse click events on the image
         """
-        
+
         # Get the mouse coordinates and add the point to the list
         x = int(event.position().x())
         y = int(event.position().y())
@@ -64,50 +69,44 @@ class InteractableGraphicsView(QGraphicsView):
         x = int(self.mapToScene(x,y).x())
         y = int(self.mapToScene(x,y).y())
 
-        # print(f"IGV:" +
-        #       f"\n{event.position()}\n" +
-        #       f"{event.scenePosition()}\n" +
-        #       f"{self.mapFromScene(event.scenePosition())}\n" +
-        #       f"{self.mapToScene(int(event.scenePosition().x()), int(event.scenePosition().y()))}\n" +
-        #       f"{self.mapToScene(x, y)}\n"
-        #       )
-
         if len(self.points) > self.current_point_index:
             self.points[self.current_point_index] = (x, y)
         else:
             self.points.append((x, y))
 
-        # # Update the corresponding button label with the image coordinates
-        # self.buttons[self.current_point_index].setText(f"Point {self.current_point_index + 1} ({x}, {y})")
-
+        # Draw points
         self.draw_points()
+
+        # Emit Signal that point changed
+        self.pointsChanged.emit(self.current_point_index, x, y)
 
         # Move to the next point index
         self.current_point_index = (self.current_point_index + 1)%4
 
 
-
-
-
-
 class ImageViewerWidget(QWidget):
     """Standalone Window providing utility for InteractableGraphicsView
     """
-    def __init__(self, pixmap: QPixmap):
+    exportImagePointRequest = Signal(list)
+
+    def __init__(self, _pixmap: QPixmap):
         super().__init__()
 
         # Set up the UI
         layout = QVBoxLayout()
 
         # Create a QGraphicsView to allow interactive drawing
-        self.view = InteractableGraphicsView(pixmap)
+        self.view = InteractableGraphicsView(_pixmap)
         layout.addWidget(self.view)
+
+        self.view.pointsChanged.connect(lambda i, x, y: self.points_changed(i, x, y))
 
         # Create buttons for points and connect them to the point_clicked function
         self.buttons = []
         button_row = QWidget()
         button_row_layout = QHBoxLayout()
 
+        # Connect 4 buttons to a point each
         for i in range(1, 5):
             button = QPushButton(f"Point {i}")
             button.clicked.connect(lambda checked=False, point=i: self.point_clicked(checked, point))
@@ -117,53 +116,36 @@ class ImageViewerWidget(QWidget):
 
         layout.addWidget(button_row)
 
-        # Create an "Export" button and connect it to the export_button_clicked function
+        # Create an "Export" button and connect it to the export_button_clicked function, disable it until 4 points are provided
         self.export_button = QPushButton("Export")
         self.export_button.clicked.connect(self.export_button_clicked)
+        self.export_button.setDisabled(True)
+        self.export_button_enabled = False
         layout.addWidget(self.export_button)
-
-        # Initialize point list and current point index
-        self.points = []
-        self.current_point_index = 0
 
         # Set the main layout
         self.setLayout(layout)
 
         # Draw the points on the image
-        self.view.draw_points()
+        # self.view.draw_points()
 
-    def point_clicked(self, checked, point):
-        # Function to handle point button clicks
-        print(checked, point)
-        self.current_point_index = point - 1
-        self.view.draw_points()
+    def point_clicked(self, _, point):
+        """Function to handle point button clicks
+        """
+        self.view.current_point_index = point -1
 
     def export_button_clicked(self):
         # Emit the "exportImagePointRequest" signal with the current points list
         self.exportImagePointRequest.emit(self.points)
 
-    def mousePressEvent(self, event: QMouseEvent):
+    def points_changed(self, i, x, y):
         """Function to handle mouse click events on the image
         """
-        
-        # Get the mouse coordinates and add the point to the list
-        x = int(event.position().x())
-        y = int(event.position().y())
+        self.buttons[i].setText(f"Point {i+1} ({x}, {y})")
+        if not self.export_button_enabled and len(self.view.points) == 4:
+            self.export_button_enabled = True
+            self.export_button.setDisabled(False)
 
-        print(f"IVW:\n{event.position().x()}, {event.position().y()}\n{event.localPos().x()}, {event.localPos().y()}\n{event.scenePosition().x()}, {event.scenePosition().y()}\n")
-
-        if len(self.points) > self.current_point_index:
-            self.points[self.current_point_index] = (x, y)
-        else:
-            self.points.append((x, y))
-
-        # Update the corresponding button label with the image coordinates
-        self.buttons[self.current_point_index].setText(f"Point {self.current_point_index + 1} ({x}, {y})")
-
-        self.view.draw_points()
-
-        # Move to the next point index
-        self.current_point_index = (self.current_point_index + 1)%4
 
 
 if __name__ == "__main__":
