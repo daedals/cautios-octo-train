@@ -22,20 +22,21 @@ class LineChartApplication(QWidget):
         # Set the application window title
         self.setWindowTitle("Line Chart Application")
 
-        # Create the main widget and layout
-        main_widget = QWidget()
-        main_layout = QVBoxLayout(main_widget)
+        # Create the main layout
+        main_layout = QVBoxLayout()
 
         # Create two plot widgets for speed and altitude
         self.speed_plot = pg.PlotWidget(title="Speed vs. Time")
         self.altitude_plot = pg.PlotWidget(title="Altitude vs. Time")
+
+        self.setLayout(main_layout)
 
         # Add the plot widgets to the main layout
         main_layout.addWidget(self.speed_plot)
         main_layout.addWidget(self.altitude_plot)
 
         # Set the main widget
-        self.setCentralWidget(main_widget)
+        # self.setCentralWidget(main_widget)
 
         # Set the horizontal range for both plots to display only 100 values
         self.speed_plot.setXRange(time_list[0] -50, time_list[-1] + 50)
@@ -53,8 +54,8 @@ class LineChartApplication(QWidget):
         self.altitude_curve.setData(time_list, altitude_list)
 
         # Plot speed and altitude against time using ScatterPlotItem for individual points
-        self.speed_scatter = pg.ScatterPlotItem(x=time_list, y=speed_list, pen='b', symbol='o', size=8, brush='b')
-        self.altitude_scatter = pg.ScatterPlotItem(x=time_list, y=altitude_list, pen='g', symbol='o', size=8, brush='g')
+        self.speed_scatter = pg.ScatterPlotItem(x=time_list, y=speed_list, pen='b', symbol='o', size=3, brush='b')
+        self.altitude_scatter = pg.ScatterPlotItem(x=time_list, y=altitude_list, pen='g', symbol='o', size=3, brush='g')
 
         # Add the ScatterPlotItem to the plots
         self.speed_plot.addItem(self.speed_scatter)

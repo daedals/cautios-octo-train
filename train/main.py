@@ -7,6 +7,7 @@ from initwin import filepicker
 from navmap import gpsdata
 from linechart import linechartplotter
 
+
 class MainWindow(filepicker.FilePickerApp, QMainWindow):
     """ main window """
 
@@ -15,6 +16,8 @@ class MainWindow(filepicker.FilePickerApp, QMainWindow):
 
     def open_video_dialog(self):
         _filename = super().open_video_dialog()
+
+        # Use file from Dialog
 
     def open_gps_data_dialog(self):
         _filename = super().open_gps_data_dialog()
@@ -31,9 +34,6 @@ class MainWindow(filepicker.FilePickerApp, QMainWindow):
         )
 
         self.linechart_window.show()
-
-
-
 
 
 if __name__ == "__main__":

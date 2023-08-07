@@ -1,7 +1,9 @@
 """ file picker """
 
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QFileDialog, QLabel
+import os
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QFileDialog, QLabel, QPushButton
 from PySide6.QtGui import QAction
 
 
@@ -9,24 +11,34 @@ class FilePickerApp(QMainWindow):
     """
     basic application for opening a file dialog by choosing the respective option in the menubar
     """
+    importRequested = Signal()
 
-    _video_path: str
-    _gps_data_path: str
+    valid_video_file_extensions = [".mp4", ".avi", ".mov"]
+    valid_gps_data_file_extensions = [".csv"]
+
+    _video_path: str = f"No path to video specified ({valid_video_file_extensions})"
+    _gps_data_path: str = f"No path to gps data specified ({valid_gps_data_file_extensions})"
 
     def __init__(self):
         super().__init__()
 
         # Create the main widget and layout
         main_widget = QWidget()
+        main_widget.setMinimumWidth(400)
         main_layout = QVBoxLayout(main_widget)
 
-        # Create the text boxes
-        self.video_path_textbox = QLabel()
-        self.gps_data_path_textbox = QLabel()
+        # Create the text boxes and a button
+        self.video_path_textbox = QLabel(self._video_path)
+        self.gps_data_path_textbox = QLabel(self._gps_data_path)
+        self.import_button = QPushButton(text= "Import")
+
+        # Prepare Button
+        self.import_button.clicked.connect(self.import_button_clicked)
 
         # Add the text boxes to the layout
         main_layout.addWidget(self.video_path_textbox)
         main_layout.addWidget(self.gps_data_path_textbox)
+        main_layout.addWidget(self.import_button)
 
         # Set the main widget
         self.setCentralWidget(main_widget)
@@ -69,6 +81,27 @@ class FilePickerApp(QMainWindow):
             self._gps_data_path = gps_data_file
             self.gps_data_path_textbox.setText(gps_data_file)
             return gps_data_file
+
+    def import_button_clicked(self):
+        """ Emit a Signal on button click """
+        if self.check_path_validity():
+            self.importRequested.emit()
+
+    def check_path_validity(self):
+        """ checks if the given filepaths are valid and have a correct extension
+        
+        valid extensions can be modified via the lists 'valid_video_file_extensions'
+        and 'valid_gps_data_file_extensions'
+        """
+        if not os.path.exists(self._gps_data_path):
+            return False
+        if not any(self._gps_data_path.lower().endswith(ext) for ext in self.valid_gps_data_file_extensions):
+            return False
+        if not os.path.exists(self._video_path):
+            return False
+        if not any(self._video_path.lower().endswith(ext) for ext in self.valid_video_file_extensions):
+            return False
+        return True
 
     @property
     def video_path(self) -> str:
