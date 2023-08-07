@@ -4,14 +4,11 @@ import QtQuick.Controls
 import QtLocation
 import QtPositioning
 
-ApplicationWindow {
+Rectangle {
     id: window
     width: 800
     height: 600
     visible: true
-    title: "GPS Data"
-
-    property QtObject mapManager
     property int marker_size: 8
 
     Plugin {
@@ -33,32 +30,27 @@ ApplicationWindow {
         }
     }
 
-    // this is currently functionless since all markers are created before loading the map in the interactive map py
-    function addMarker(latitude, longitude)
-    {
-        var Component = Qt.createComponent(".\\data\\marker.qml")
-        var item = Component.createObject(window, {
-                                              coordinate: QtPositioning.coordinate(latitude, longitude)
-                                          })
-        mapItem.addMapItem(item)
-    }
-
     Map {
         id: mapItem
-        activeMapType: supportedMapTypes[0]
+        // activeMapType: supportedMapTypes[0] // StreetMap
+        // activeMapType: supportedMapTypes[0] // Cycle Map
+        activeMapType: supportedMapTypes[0] // Transit Map
+        // activeMapType: supportedMapTypes[0] // Night Transit Map
+        // activeMapType: supportedMapTypes[0] // Terrain Map
+        // activeMapType: supportedMapTypes[0] // Hiking Map
 
         anchors.fill: parent
         plugin: osmPlugin
         center: QtPositioning.coordinate(63.43674 ,10.40070)
         zoomLevel: 14
 
-        // this is only to show supported map types for defisgn purposes
-        onSupportedMapTypesChanged: {
-            console.log("Supported MapType:");
-            for (var i = 0; i < mapItem.supportedMapTypes.length; i++) {
-                console.log(i, supportedMapTypes[i].name);
-            }
-        }
+        // this is only to show supported map types for design purposes
+        // onSupportedMapTypesChanged: {
+        //     console.log("Supported MapType:");
+        //     for (var i = 0; i < mapItem.supportedMapTypes.length; i++) {
+        //         console.log(i, supportedMapTypes[i].name);
+        //     }
+        // }
 
         // map item view, initialized in interactive map using mapmarkers.py
         MapItemView {
@@ -74,6 +66,13 @@ ApplicationWindow {
                     // border.color: "white"
                     color: markerColor
                     // border.width: 1
+                    MouseArea{
+                        anchors.fill: parent
+                        onClicked: {
+                            // console.log("MapQuickItem clicked")
+                            markerModel.forward_clicked_signal(markerIndex, markerPosition)
+                        }
+                    }
                 }
             }
         }
@@ -125,36 +124,6 @@ ApplicationWindow {
             enabled: mapItem.zoomLevel > mapItem.minimumZoomLevel
             sequence: StandardKey.ZoomOut
             onActivated: mapItem.zoomLevel = Math.round(mapItem.zoomLevel - 1)
-        }
-    }
-
-    Connections {
-        target: mapManager
-        function onMarkerRequest(lat, lon) { 
-            // console.log(lat, lon) 
-            addMarker(lat, lon)
-        }
-    }
-
-    Component {
-        id: mapcomponent
-        MapQuickItem {
-            id: marker
-            anchorPoint.x: image.width/4
-            anchorPoint.y: image.height
-            coordinate: position
-
-            MouseArea{
-                anchors.fill: parent
-                onClicked: {
-                    imageMarker.source = "qrc:/Images/Images/markerGreen.png"
-                    console.log("MapQuickItem clicked")}
-            }
-
-            sourceItem: Image {
-                id: imageMarker
-                source: "qrc:/Images/Images/markerRed.png"
-            }
         }
     }
 }

@@ -7,6 +7,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 import pyqtgraph as pg
 
+from navmap import gpsdata
 
 class LineChartApplication(QWidget):
     """ Line chart window specifically for speed and altitude against time """
@@ -14,13 +15,22 @@ class LineChartApplication(QWidget):
     # signal when a point is clicked
     scatterPointClicked = Signal(int)
 
-    def __init__(self, time_list, speed_list, altitude_list):
+    def __init__(self, _gps_data: gpsdata.GPSData):
         super().__init__()
 
-        self.time_list = time_list
+        # Prepare data point
+        speed_list = [coordinate.speed for coordinate in _gps_data.list_of_coords()]
+        altitude_list = [coordinate.altitude for coordinate in _gps_data.list_of_coords()]
+        self._time_list = [coordinate.timeid for coordinate in _gps_data.list_of_coords()]
 
         # Set the application window title
-        self.setWindowTitle("Line Chart Application")
+        self.setWindowTitle("Line Chart Window "+ _gps_data.file_path.split("//")[-1])
+        self.setToolTip(
+            "Click on a data point to navigate to its time stamp.\n"+ 
+            "Data points are only shown if the train actually moved."+
+            "Long flat sections can be explained with a stop of the train or"+
+            "a pause in the video for the synchronization of all 4 seasons"
+            )
 
         # Create the main layout
         main_layout = QVBoxLayout()
@@ -39,8 +49,8 @@ class LineChartApplication(QWidget):
         # self.setCentralWidget(main_widget)
 
         # Set the horizontal range for both plots to display only 100 values
-        self.speed_plot.setXRange(time_list[0] -50, time_list[-1] + 50)
-        self.altitude_plot.setXRange(time_list[0] -50, time_list[-1] + 50)
+        self.speed_plot.setXRange(self._time_list[0] -50, self._time_list[-1] + 50)
+        self.altitude_plot.setXRange(self._time_list[0] -50, self._time_list[-1] + 50)
 
         # Plot speed and altitude against time
         self.speed_curve = self.speed_plot.plot(pen='b')
@@ -50,19 +60,19 @@ class LineChartApplication(QWidget):
         self.speed_plot.setXLink(self.altitude_plot)
 
         # Update the plots with the provided data
-        self.speed_curve.setData(time_list, speed_list)
-        self.altitude_curve.setData(time_list, altitude_list)
+        self.speed_curve.setData(self._time_list, speed_list)
+        self.altitude_curve.setData(self._time_list, altitude_list)
 
         # Plot speed and altitude against time using ScatterPlotItem for individual points
-        self.speed_scatter = pg.ScatterPlotItem(x=time_list, y=speed_list, pen='b', symbol='o', size=3, brush='b')
-        self.altitude_scatter = pg.ScatterPlotItem(x=time_list, y=altitude_list, pen='g', symbol='o', size=3, brush='g')
+        self.speed_scatter = pg.ScatterPlotItem(x=self._time_list, y=speed_list, pen='b', symbol='o', size=3, brush='b')
+        self.altitude_scatter = pg.ScatterPlotItem(x=self._time_list, y=altitude_list, pen='g', symbol='o', size=3, brush='g')
 
         # Add the ScatterPlotItem to the plots
         self.speed_plot.addItem(self.speed_scatter)
         self.altitude_plot.addItem(self.altitude_scatter)
 
-        self.speed_scatter.setData(x=time_list, y=speed_list)
-        self.altitude_scatter.setData(x=time_list, y=altitude_list)
+        self.speed_scatter.setData(x=self._time_list, y=speed_list)
+        self.altitude_scatter.setData(x=self._time_list, y=altitude_list)
 
         # Connect the clicked signal of the ScatterPlotItem to handle interaction with data points
         self.speed_scatter.sigClicked.connect(self.on_point_clicked)
@@ -75,7 +85,7 @@ class LineChartApplication(QWidget):
         index = points[int(len(points)/2)].index()
 
         # Print the corresponding time value to the console
-        print(f"Time value of clicked data point: {self.time_list[index]} ({index})")
+        print(f"Time value of clicked data point: {self._time_list[index]} ({index})")
 
         # Emit signal
         self.scatterPointClicked.emit(index)

@@ -54,11 +54,25 @@ class Coordinate:
 class GPSData:
     """Data container for GPS data from specific csv format"""
     data = []
+    _file_path : str = None
 
     def read_csv_data(self, _file_path):
         """Reads data from specific gps csv files and converts them to a list of tuples"""
 
+        # Return if function is called with the same argument
+        if self._file_path is not None and _file_path.lower() == self._file_path.lower():
+            return
+
         with open(_file_path, 'r', encoding='ascii') as file:
+
+            # Discard data if a new file_path is provided
+            if self._file_path is not None:
+                self.data = []
+
+            # Set file path
+            self._file_path = _file_path
+
+            # Read with csv module
             csv_reader = csv.reader(file)
             _header = next(csv_reader)  # skip the header line
 
@@ -107,19 +121,8 @@ class GPSData:
         for coordinate in self.data:
             yield coordinate
 
+    @property
+    def file_path(self):
+        """ getter for file path """
+        return self._file_path
 
-
-if __name__ == "__main__":
-    gpsdata = GPSData()
-    file_path = './data/gps_spring.csv'
-    header, data = gpsdata.read_csv_data(file_path)
-    print(file_path, header, data[:5], '\n')
-    file_path = './data/gps_summer.csv'
-    header, data = gpsdata.read_csv_data(file_path)
-    print(file_path, header, data[:5], '\n')
-    file_path = './data/gps_fall.csv'
-    header, data = gpsdata.read_csv_data(file_path)
-    print(file_path, header, data[:5], '\n')
-    file_path = './data/gps_winter.csv'
-    header, data = gpsdata.read_csv_data(file_path)
-    print(file_path, header, data[:5], '\n')

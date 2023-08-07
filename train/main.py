@@ -1,39 +1,53 @@
 """ main window that uses all other windows in inheritance or instantiation """
 
 import sys
-
+# from Pyside6.QtCore import 
+from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QMainWindow#, QLabel
+
 from initwin import filepicker
-from navmap import gpsdata
-from linechart import linechartplotter
+from navmap import gpsdata, linechartplotter
 
 
 class MainWindow(filepicker.FilePickerApp, QMainWindow):
     """ main window """
 
+    _gps_data: gpsdata.GPSData() = None
+    _linechart_window : linechartplotter.LineChartApplication = None
+
     def __init__(self):
         super().__init__()
 
-    def open_video_dialog(self):
-        _filename = super().open_video_dialog()
+        self.setWindowTitle("Main Window (Exit all on close)")
+        self.importRequested.connect(self.initialize)
 
-        # Use file from Dialog
+    def initialize(self):
+        """ initialize data and windows, if already initialized show windows if closed """
 
-    def open_gps_data_dialog(self):
-        _filename = super().open_gps_data_dialog()
+        # Prepare gps data if there is none or its new
+        if self._gps_data is None or self.gps_data_path.lower() != self._gps_data.file_path.lower():
+            self._gps_data = gpsdata.GPSData()
+            self._gps_data.read_csv_data(self.gps_data_path)
 
-        # Use file from dialog
-        self.gpsdata = gpsdata.GPSData()
-        _, data = self.gpsdata.read_csv_data(_filename)
+            # if new gps data is supplied and there is already an active linechart window, close it and discard the reference
+            if self._linechart_window is not None:
+                self._linechart_window.close()
+                self._linechart_window = None
 
-        # open new window
-        self.linechart_window = linechartplotter.LineChartApplication(
-            [coordinate.timeid for coordinate in self.gpsdata.list_of_coords()],
-            [coordinate.speed for coordinate in self.gpsdata.list_of_coords()],
-            [coordinate.altitude for coordinate in self.gpsdata.list_of_coords()]
-        )
 
-        self.linechart_window.show()
+        # Use gps data to open new window if it hasnt been created
+        if self._linechart_window is None:
+            self._linechart_window = linechartplotter.LineChartApplication(self._gps_data)
+
+        self._linechart_window.show()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """ extend innate closeEvent to cleanup windows """
+        if self._linechart_window is not None:
+            self._linechart_window.close()
+            self._linechart_window = None
+
+        return super().closeEvent(event)
 
 
 if __name__ == "__main__":
