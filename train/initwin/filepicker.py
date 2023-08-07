@@ -2,12 +2,16 @@
 
 import sys
 import os
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget, QFileDialog, QLabel, QPushButton
+
+from PySide6.QtCore import Signal, Slot
+from PySide6.QtWidgets import QVBoxLayout, QWidget, QFileDialog,\
+                              QLabel, QPushButton, QMenuBar
 from PySide6.QtGui import QAction
 
+from initwin import sessionrestore
 
-class FilePickerApp(QMainWindow):
+
+class FilePickerWidget(QWidget):
     """
     basic application for opening a file dialog by choosing the respective option in the menubar
     """
@@ -16,20 +20,23 @@ class FilePickerApp(QMainWindow):
     valid_video_file_extensions = [".mp4", ".avi", ".mov"]
     valid_gps_data_file_extensions = [".csv"]
 
-    _video_path: str = f"No path to video specified ({valid_video_file_extensions})"
-    _gps_data_path: str = f"No path to gps data specified ({valid_gps_data_file_extensions})"
 
-    def __init__(self):
+    def __init__(self, session: sessionrestore.Session, menubar: QMenuBar):
         super().__init__()
 
-        # Create the main widget and layout
-        main_widget = QWidget()
-        main_widget.setMinimumWidth(400)
-        main_layout = QVBoxLayout(main_widget)
+        self.session = session
+
+        # Create the layout
+        self.setMinimumWidth(400)
+        main_layout = QVBoxLayout()
 
         # Create the text boxes and a button
-        self.video_path_textbox = QLabel(self._video_path)
-        self.gps_data_path_textbox = QLabel(self._gps_data_path)
+        self.video_path_textbox = QLabel(
+            f"No path to video specified ({FilePickerWidget.valid_video_file_extensions})"
+            )
+        self.gps_data_path_textbox = QLabel(
+            f"No path to gps data specified ({FilePickerWidget.valid_gps_data_file_extensions})"
+            )
         self.import_button = QPushButton(text= "Import")
 
         # Prepare Button
@@ -40,11 +47,7 @@ class FilePickerApp(QMainWindow):
         main_layout.addWidget(self.gps_data_path_textbox)
         main_layout.addWidget(self.import_button)
 
-        # Set the main widget
-        self.setCentralWidget(main_widget)
-
-        # Create the menu bar
-        menubar = self.menuBar()
+        self.setLayout(main_layout)
 
         # Create "Open Video" action and connect it to the slot
         open_video_action = QAction("Open Video", self)
@@ -54,11 +57,18 @@ class FilePickerApp(QMainWindow):
         open_gps_data_action = QAction("Open GPS Data", self)
         open_gps_data_action.triggered.connect(self.open_gps_data_dialog)
 
+        restore_session_action = QAction("Restore Last Session", self)
+        restore_session_action.triggered.connect(self.restore_session)
+
         # Create the "File" menu and add actions to it
         file_menu = menubar.addMenu("File")
         file_menu.addAction(open_video_action)
+        file_menu.addSection("hello")
         file_menu.addAction(open_gps_data_action)
+        file_menu.addSeparator()
+        file_menu.addAction(restore_session_action)
 
+    @Slot()
     def open_video_dialog(self):
         """ prompts user for path of video """
         options = QFileDialog.Options()
@@ -66,11 +76,11 @@ class FilePickerApp(QMainWindow):
             self, "Open Video File", "", "Video Files (*.mp4 *.avi *.mov)", options=options
             )
         if video_file:
-            self._video_path = video_file
-            self.video_path_textbox.setText(video_file)
+            self.video_path = video_file
             return video_file
         raise NameError()
 
+    @Slot()
     def open_gps_data_dialog(self):
         """ prompts user for path of gps data """
         options = QFileDialog.Options()
@@ -78,9 +88,16 @@ class FilePickerApp(QMainWindow):
             self, "Open GPS Data File", "", "CSV Files (*.csv)", options=options
             )
         if gps_data_file:
-            self._gps_data_path = gps_data_file
-            self.gps_data_path_textbox.setText(gps_data_file)
+            self.gps_data_path = gps_data_file
             return gps_data_file
+
+    @Slot()
+    def restore_session(self):
+        """ slot for button """
+        if self.session.load():
+            # dummy setting variables to call setter
+            self.video_path = self.video_path
+            self.gps_data_path = self.gps_data_path
 
     def import_button_clicked(self):
         """ Emit a Signal on button click """
@@ -93,29 +110,34 @@ class FilePickerApp(QMainWindow):
         valid extensions can be modified via the lists 'valid_video_file_extensions'
         and 'valid_gps_data_file_extensions'
         """
-        if not os.path.exists(self._gps_data_path):
+        if self.video_path is None or self.gps_data_path is None:
             return False
-        if not any(self._gps_data_path.lower().endswith(ext) for ext in self.valid_gps_data_file_extensions):
+        if not os.path.exists(self.gps_data_path):
             return False
-        if not os.path.exists(self._video_path):
+        if not any(self.gps_data_path.lower().endswith(ext) for ext in self.valid_gps_data_file_extensions):
             return False
-        if not any(self._video_path.lower().endswith(ext) for ext in self.valid_video_file_extensions):
+        if not os.path.exists(self.video_path):
+            return False
+        if not any(self.video_path.lower().endswith(ext) for ext in self.valid_video_file_extensions):
             return False
         return True
 
     @property
     def video_path(self) -> str:
         """ path to video file as str """
-        return self._video_path
+        return self.session.get("Video File Path")
+    
+    @video_path.setter
+    def video_path(self, value) -> None:
+        self.video_path_textbox.setText(value)
+        self.session.add("Video File Path", value)
 
     @property
     def gps_data_path(self) -> str:
         """ path to gps data file as str """
-        return self._gps_data_path
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = FilePickerApp()
-    window.show()
-    sys.exit(app.exec())
+        return self.session.get("GPS Data Path")
+    
+    @gps_data_path.setter
+    def gps_data_path(self, value) -> None:
+        self.gps_data_path_textbox.setText(value)
+        self.session.add("GPS Data Path", value)

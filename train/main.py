@@ -1,15 +1,16 @@
 """ main window that uses all other windows in inheritance or instantiation """
 
 import sys
+
 # from Pyside6.QtCore import 
 from PySide6.QtGui import QCloseEvent
-from PySide6.QtWidgets import QApplication, QMainWindow#, QLabel
+from PySide6.QtWidgets import QApplication, QMainWindow
 
-from initwin import filepicker
+from initwin import filepicker, sessionrestore
 from navmap import gpsdata, linechartplotter
 
 
-class MainWindow(filepicker.FilePickerApp, QMainWindow):
+class MainWindow(QMainWindow):
     """ main window """
 
     _gps_data: gpsdata.GPSData() = None
@@ -19,15 +20,24 @@ class MainWindow(filepicker.FilePickerApp, QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Main Window (Exit all on close)")
-        self.importRequested.connect(self.initialize)
+
+        menubar = self.menuBar()
+
+        self.session = sessionrestore.Session()
+        self.filepicker = filepicker.FilePickerWidget(self.session, menubar)
+
+        # connect window initialization to filepickers import signal
+        self.filepicker.importRequested.connect(self.initialize)
+
+        self.setCentralWidget(self.filepicker)
 
     def initialize(self):
         """ initialize data and windows, if already initialized show windows if closed """
 
         # Prepare gps data if there is none or its new
-        if self._gps_data is None or self.gps_data_path.lower() != self._gps_data.file_path.lower():
+        if self._gps_data is None or self.filepicker.gps_data_path.lower() != self._gps_data.file_path.lower():
             self._gps_data = gpsdata.GPSData()
-            self._gps_data.read_csv_data(self.gps_data_path)
+            self._gps_data.read_csv_data(self.filepicker.gps_data_path)
 
             # if new gps data is supplied and there is already an active linechart window, close it and discard the reference
             if self._linechart_window is not None:
@@ -46,6 +56,8 @@ class MainWindow(filepicker.FilePickerApp, QMainWindow):
         if self._linechart_window is not None:
             self._linechart_window.close()
             self._linechart_window = None
+
+        self.session.save()
 
         return super().closeEvent(event)
 
