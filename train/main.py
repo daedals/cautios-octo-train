@@ -2,13 +2,14 @@
 
 import sys
 
-# from Pyside6.QtCore import 
-from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtCore import Slot, Signal
+from PySide6.QtGui import QCloseEvent, QPixmap
 
 from initwin import filepicker, sessionrestore
 from navmap import gpsdata, linechartplotter
 from videopl import videoplayer
+from imagedit import imageeditor
 
 
 class MainWindow(QMainWindow):
@@ -72,16 +73,22 @@ class MainWindow(QMainWindow):
             self.filepicker.video_path,
             self._gps_data.list_of_timestamps()
             )
+        self._videoplayer_window.frameExportRequest.connect(self.open_image_editor)
         self._videoplayer_window.show()
 
+    @Slot(QPixmap)
+    def open_image_editor(self, pixmap: QPixmap):
+        """ slot for export signal from _video_player_window, opens image in new window """
+        self._image_editor_window = imageeditor.ImageViewerWidget(pixmap)
+        self._image_editor_window.show()
 
 
     def cleanup(self):
         """ cleanup to be called at closeEvent """
-        if self._linechart_window is not None:
-            self._linechart_window.close()
-            self._linechart_window = None
-
+        for window in [self._linechart_window, self._videoplayer_window]:
+            if window is not None:
+                window.close()
+                window = None
 
     def closeEvent(self, event: QCloseEvent) -> None:
         """ extend innate closeEvent to cleanup windows """

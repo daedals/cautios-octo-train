@@ -5,14 +5,15 @@
 
 import cv2
 from numpy import ndarray
-from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWidget
-from PySide6.QtCore import Qt, QTimer, Signal, QSize
-from PySide6.QtGui import QPixmap, QImage, QResizeEvent
+from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWidget, QLineEdit
+from PySide6.QtCore import Qt, QTimer, Signal, Slot, QSize
+from PySide6.QtGui import QPixmap, QImage, QResizeEvent, QIntValidator
 
 
 class VideoPlayerLabel(QLabel):
     """Integrates a Video loaded with OpenCV into a displayable Widget and provides functionality
     """
+    video_loaded = Signal(int)
 
     def __init__(self, *args, **kwargs):
 
@@ -22,8 +23,6 @@ class VideoPlayerLabel(QLabel):
         self.display_size = QSize(960, 540)
         self.resize(self.display_size)
         self.setMinimumSize(self.display_size)
-        
-        print(self.sizePolicy())
 
         # Initialize video properties
         self.video_path = ""
@@ -43,8 +42,9 @@ class VideoPlayerLabel(QLabel):
         self.video_capture = cv2.VideoCapture(video_path)
         self.timestamps = timestamps
 
+        self.video_loaded.emit(len(timestamps))
+
         self.video_fps = self.video_capture.get(cv2.CAP_PROP_FPS)
-        print(self.video_fps)
 
         # Set the initial timestamp index and update the video display
         self.current_timestamp_index = 0
@@ -55,11 +55,14 @@ class VideoPlayerLabel(QLabel):
         """
         self.is_playing = not self.is_playing
         if self.is_playing:
-            print(self.current_timestamp_index)
             self.timer.start(1/self.video_fps)  # 33 milliseconds (30 frames per second)
         else:
             self.timer.stop()
         return self.is_playing
+    def jump_to_index(self, index: int):
+        if index >= 0 and index < len(self.timestamps):
+            self.current_timestamp_index = index
+            self._update_video_frame()
 
     def go_to_previous_timestamp(self):
         # Move to the previous timestamp and update the video display
@@ -89,6 +92,7 @@ class VideoPlayerLabel(QLabel):
         ret, frame = self.video_capture.read()
         if not ret:
             self.timer.stop()
+            print("SOmething went wrong")
             return
 
         # Display the frame in the widget
@@ -104,12 +108,11 @@ class VideoPlayerLabel(QLabel):
         # unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
         scaled_q_image = unscaled_q_image.scaled(self.display_size.width(), self.display_size.height(), Qt.KeepAspectRatio)
         return QPixmap.fromImage(scaled_q_image)
-    
+
     def resizeEvent(self, event: QResizeEvent) -> None:
-        print(event)
         self.display_size: QSize = event.size()
         return super().resizeEvent(event)
-    
+
 
 class VideoPlayerWidget(QWidget):
     """Integrates VideoplayerLabel into a Widget and supplies UI for its functionality
@@ -153,13 +156,46 @@ class VideoPlayerWidget(QWidget):
 
         button_widget.setLayout(button_layout)
 
+        # create widget with jump to index functionality
+        jump_widget = QWidget()
+        jump_layout = QHBoxLayout()
+
+        # create sub widgets
+        textfield1 = QLabel("Jump to:")
+        minimum_jump_tf = QLabel("0 ≤ ")
+        self.jump_line_edit = QLineEdit("0")
+        self.maximum_jump_tf = QLabel("")
+        self.jump_button = QPushButton("Jump")
+
+        # connect to signals
+        self.jump_button.clicked.connect(
+            lambda: self.video_player_label.jump_to_index(int(self.jump_line_edit.text()))
+            )
+        self.video_player_label.video_loaded.connect(self.configure_jump_widget)
+
+        # add to layout
+        jump_layout.addWidget(textfield1)
+        jump_layout.addWidget(minimum_jump_tf)
+        jump_layout.addWidget(self.jump_line_edit)
+        jump_layout.addWidget(self.maximum_jump_tf)
+        jump_layout.addWidget(self.jump_button)
+
+        jump_widget.setLayout(jump_layout)
+
         # add button widget to UI
         general_layout.addWidget(button_widget)
+        general_layout.addWidget(jump_widget)
         self.setLayout(general_layout)
 
     def load_video(self, *args, **kwargs):
         """ wrapper for load_video of videoplayerlabel """
         self.video_player_label.load_video(*args, **kwargs)
+
+    @Slot(int)
+    def configure_jump_widget(self, max_index: int):
+        """ sets the text for the max jump and introduces an QIntValidator to the QLineEdit"""
+        self.maximum_jump_tf.setText(f" < {max_index}")
+        self.jump_line_edit.setValidator(QIntValidator(0, max_index-1, self))
 
     def export_frame(self):
         """ Slot for export button, sends the current frames pixmap"""
