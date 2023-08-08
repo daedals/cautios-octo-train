@@ -13,18 +13,22 @@ from navmap import gpsdata, linechartplotter
 class MainWindow(QMainWindow):
     """ main window """
 
-    _gps_data: gpsdata.GPSData() = None
-    _linechart_window : linechartplotter.LineChartApplication = None
-
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Main Window (Exit all on close)")
-
+        # menubar creation for filepicker
         menubar = self.menuBar()
+
+        # Component setup
+        self._gps_data: gpsdata.GPSData() = gpsdata.GPSData()
+        self._linechart_window : linechartplotter.LineChartApplication = None
 
         self.session = sessionrestore.Session()
         self.filepicker = filepicker.FilePickerWidget(self.session, menubar)
+
+        # UI setup
+        self.setWindowTitle("Main Window (Exit all on close)")
+
 
         # connect window initialization to filepickers import signal
         self.filepicker.importRequested.connect(self.initialize)
@@ -34,29 +38,39 @@ class MainWindow(QMainWindow):
     def initialize(self):
         """ initialize data and windows, if already initialized show windows if closed """
 
-        # Prepare gps data if there is none or its new
-        if self._gps_data is None or self.filepicker.gps_data_path.lower() != self._gps_data.file_path.lower():
-            self._gps_data = gpsdata.GPSData()
-            self._gps_data.read_csv_data(self.filepicker.gps_data_path)
+        self._gps_data.read_csv_data(self.filepicker.gps_data_path)
 
-            # if new gps data is supplied and there is already an active linechart window, close it and discard the reference
-            if self._linechart_window is not None:
-                self._linechart_window.close()
-                self._linechart_window = None
+        self.initialize_linechart_window()
+        self.initialize_interactive_map()
 
-
-        # Use gps data to open new window if it hasnt been created
-        if self._linechart_window is None:
-            self._linechart_window = linechartplotter.LineChartApplication(self._gps_data)
-
+    def initialize_linechart_window(self):
+        """ initialization of the linechart window"""
+        if self._linechart_window is not None:
+            self._linechart_window.close()
+            self._linechart_window = None
+            
+        self._linechart_window = linechartplotter.LineChartApplication(self._gps_data)
         self._linechart_window.show()
 
-    def closeEvent(self, event: QCloseEvent) -> None:
-        """ extend innate closeEvent to cleanup windows """
+    def initialize_interactive_map(self):
+        pass
+
+    def initialize_datadisplay(self):
+        pass
+
+    def initialize_videoplayer(self):
+        pass
+
+    def cleanup(self):
+        """ cleanup to be called at closeEvent """
         if self._linechart_window is not None:
             self._linechart_window.close()
             self._linechart_window = None
 
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        """ extend innate closeEvent to cleanup windows """
+        self.cleanup()
         self.session.save()
 
         return super().closeEvent(event)

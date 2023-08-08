@@ -6,12 +6,9 @@
 import cv2
 from numpy import ndarray
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWidget
-from PySide6.QtCore import Qt, QTimer, Signal, QThread, QSize
+from PySide6.QtCore import Qt, QTimer, Signal, QSize
 from PySide6.QtGui import QPixmap, QImage, QResizeEvent
 
-
-class VideoThread(QThread):
-    pass
 
 class VideoPlayerLabel(QLabel):
     """Integrates a Video loaded with OpenCV into a displayable Widget and provides functionality
@@ -185,11 +182,9 @@ if __name__ == "__main__":
     app = QApplication()
     window = VideoPlayerWidget()
 
-    # Example data (replace with your own video path and timestamps)
     # video_path = "D:\\nordlandsbanen.spring.sync.1920x1080.h264.nrk.mp4"
     video_path = "D:\\nordlandsbanen.winter.sync.1920x1080.h264.nrk.mp4"
     window.video_player_label.load_video(video_path, [i for i in range(0, 2000)])
 
     window.show()
-
     app.exec()

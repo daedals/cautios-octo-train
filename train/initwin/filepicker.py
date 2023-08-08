@@ -93,11 +93,13 @@ class FilePickerWidget(QWidget):
 
     @Slot()
     def restore_session(self):
-        """ slot for button """
+        """ slot for button, utilizes session """
         if self.session.load():
             # dummy setting variables to call setter
             self.video_path = self.video_path
             self.gps_data_path = self.gps_data_path
+            # self.gps_data_path_textbox.setText(self.session.get("GPS Data Path"))
+            # self.video_path_textbox.setText(self.session.get("Video File Path"))
 
     def import_button_clicked(self):
         """ Emit a Signal on button click """
@@ -124,20 +126,22 @@ class FilePickerWidget(QWidget):
 
     @property
     def video_path(self) -> str:
-        """ path to video file as str """
+        """ Getter for path to video file as str """
         return self.session.get("Video File Path")
     
     @video_path.setter
     def video_path(self, value) -> None:
+        """ Setter for video_path, also updates textbox """
         self.video_path_textbox.setText(value)
         self.session.add("Video File Path", value)
 
     @property
     def gps_data_path(self) -> str:
-        """ path to gps data file as str """
+        """ Getter for path to gps data file as str """
         return self.session.get("GPS Data Path")
     
     @gps_data_path.setter
     def gps_data_path(self, value) -> None:
+        """ Setter for gps_data_path, also updates textbox """
         self.gps_data_path_textbox.setText(value)
         self.session.add("GPS Data Path", value)

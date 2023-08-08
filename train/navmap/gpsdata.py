@@ -53,8 +53,10 @@ class Coordinate:
 
 class GPSData:
     """Data container for GPS data from specific csv format"""
-    data = []
-    _file_path : str = None
+
+    def __init__(self) -> None:
+        self.data = []
+        self._file_path :str = None
 
     def read_csv_data(self, _file_path):
         """Reads data from specific gps csv files and converts them to a list of tuples"""
@@ -66,7 +68,8 @@ class GPSData:
         with open(_file_path, 'r', encoding='ascii') as file:
 
             # Discard data if a new file_path is provided
-            if self._file_path is not None:
+            if self.data is not None:
+                del self.data
                 self.data = []
 
             # Set file path

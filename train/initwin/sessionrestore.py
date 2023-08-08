@@ -9,7 +9,7 @@ class Session:
 
     def __init__(self):
         self.json_data = {}
-        self.get = self.json_data.get
+        # self.get = self.json_data.get
         self._path = "session_data.json"
 
     def load(self, _path= None):
@@ -18,7 +18,6 @@ class Session:
             _path = self._path
         else:
             self._path = _path
-
         try:
             with open(_path, "r", encoding="ascii") as file:
                 self.json_data = json.load(file)
@@ -29,6 +28,8 @@ class Session:
 
     def save(self, _path= None):
         """save data to json in static location of create if not available"""
+        if any(value is None for _, value in self.json_data.items()):
+            return
         if _path is None:
             _path = self._path
         with open(_path, "w", encoding="ascii") as file:
@@ -37,3 +38,6 @@ class Session:
     def add(self, key: str, value):
         """ wrapper for dict accessor """
         self.json_data[key] = value
+
+    def get(self, *args, **kwargs):
+        return self.json_data.get(*args, **kwargs)
