@@ -91,7 +91,8 @@ class InteractableGraphicsView(QGraphicsView):
         self.pointsChanged.emit(self.current_point_index, x, y)
 
         # Move to the next point index
-        self.current_point_index = (self.current_point_index + 1)%4
+        if len(self.points) < 4:
+            self.current_point_index = (self.current_point_index + 1)%4
 
 
 class ImageViewerWidget(QWidget):
@@ -136,18 +137,15 @@ class ImageViewerWidget(QWidget):
         self.setLayout(layout)
 
     def point_clicked(self, _, point):
-        """Function to handle point button clicks
-        """
+        """ Function to handle point button clicks """
         self.view.set_current_index(point -1)
 
     def export_button_clicked(self):
-        """Emit the "exportImagePointRequest" signal with the current points list
-        """
+        """ Emit the "exportImagePointRequest" signal with the current points list """
         self.exportImagePointRequest.emit(self.points)
 
     def on_points_changed(self, i, x, y):
-        """Function to handle mouse click events on the image
-        """
+        """ Function to handle mouse click events on the image """
         self.buttons[i].setText(f"Point {i+1} ({x}, {y})")
         if not self.export_button_enabled and len(self.view.points) == 4:
             self.export_button_enabled = True
