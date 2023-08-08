@@ -96,8 +96,8 @@ class VideoPlayerLabel(QLabel):
             return
 
         # Display the frame in the widget
-        q_image = self.convert_cv_img_to_q_pixmap(frame)
-        self.setPixmap(q_image)
+        q_pixmap = self.convert_cv_img_to_q_pixmap(frame)
+        self.setPixmap(q_pixmap)
 
     def convert_cv_img_to_q_pixmap(self, cv_image: ndarray):
         """Provides functionality to convert opencvs ndarray to qts pixmap """
@@ -105,6 +105,7 @@ class VideoPlayerLabel(QLabel):
         bytesPerLine = 3 * width
 
         unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        self.pixmap_unscaled = QPixmap.fromImage(unscaled_q_image)
         # unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
         scaled_q_image = unscaled_q_image.scaled(self.display_size.width(), self.display_size.height(), Qt.KeepAspectRatio)
         return QPixmap.fromImage(scaled_q_image)
@@ -197,10 +198,12 @@ class VideoPlayerWidget(QWidget):
         self.maximum_jump_tf.setText(f" < {max_index}")
         self.jump_line_edit.setValidator(QIntValidator(0, max_index-1, self))
 
+    @Slot()
     def export_frame(self):
         """ Slot for export button, sends the current frames pixmap"""
-        self.frameExportRequest.emit(self.video_player_label.pixmap)
+        self.frameExportRequest.emit(self.video_player_label.pixmap_unscaled)
 
+    @Slot()
     def toggle_play_pause(self):
         is_playing = self.video_player_label.toggle_play_pause()
         if is_playing:

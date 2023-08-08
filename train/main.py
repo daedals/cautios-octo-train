@@ -2,7 +2,7 @@
 
 import sys
 
-from PySide6.QtWidgets import QApplication, QMainWindow
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel
 from PySide6.QtCore import Slot, Signal
 from PySide6.QtGui import QCloseEvent, QPixmap
 
@@ -79,6 +79,10 @@ class MainWindow(QMainWindow):
     @Slot(QPixmap)
     def open_image_editor(self, pixmap: QPixmap):
         """ slot for export signal from _video_player_window, opens image in new window """
+        # print("i'm trying to export")
+        # self.window = QLabel()
+        # self.window.setPixmap(pixmap)
+        # self.window.show()
         self._image_editor_window = imageeditor.ImageViewerWidget(pixmap)
         self._image_editor_window.show()
 
