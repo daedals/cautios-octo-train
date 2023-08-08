@@ -79,29 +79,38 @@ class GPSData:
             csv_reader = csv.reader(file)
             _header = next(csv_reader)  # skip the header line
 
-            prev_lat = 0
-            prev_lon = 0
+            first_timestamp: int = None
 
             for row in csv_reader:
                 try:
                     # catch all header values as strings
                     tid, lat, lon, speed, course, alt = row
 
-                    # skip coordinate if the train didn't move
-                    if prev_lat == lat and prev_lon == lon:
-                        continue
+                    # time id is given as a clock time in milliseconds, so 12:34 is 12340000
+                    # gps coordinates seem to have been created only every second
+                    # so it is converted to total amount of seconds
+                    s = int(int(tid)/100)%100
+                    m = int(int(tid)/10000)%100
+                    h = int(int(tid)/1000000)
 
-                    # update coordinates if train did move
-                    prev_lat, prev_lon = lat, lon
+                    timestamp = 3600 * h + 60 * m + s
+
+                    # remember first t
+                    if first_timestamp is None:
+                        first_timestamp = timestamp
 
                     # convert each string to a useful value
                     row_data = Coordinate(
-                        int(int(tid)/100), # Time id
-                        float(int(lat)) / 10**5, # latidute 
-                        float(int(lon)) / 10**5, # longitude
-                        float(int(speed)) / 10**2, # speed
-                        int(course), 
-                        float(int(alt)) / 10**2 # altitude
+                        timestamp - first_timestamp,
+                        # latitude and longitude are given in decimal geographical degrees multiplied by 100000
+                        float(int(lat)) / 10**5,
+                        float(int(lon)) / 10**5,
+                        # speed is given in 10m/h, converted to km/h
+                        float(int(speed)) / 10**2,
+                        # course is not used
+                        int(course),
+                        # altitude is given in cm, converted to m
+                        float(int(alt)) / 10**2
                     )
 
                     self.data.append(row_data)
@@ -111,18 +120,35 @@ class GPSData:
                         f'{exception}: Row {csv_reader.line_num} with values {row} could not be converted.'
                     )
 
-            print(self.data.__len__())
+            print(len(self.data))
 
             return _header, self.data
 
-    def to_dict(self):
-        """ Returns data as a dict """
-        pass
-
     def list_of_coords(self):
         """ generator for list of coordinates """
+        coordinate: Coordinate
         for coordinate in self.data:
             yield coordinate
+
+    def list_of_coords_filtered(self):
+        """ generator for list of coordinates with unique geographical coordinates"""
+        coordinate: Coordinate
+        previous_lat: float = 0
+        previous_lon: float = 0
+
+        for coordinate in self.data:
+            if previous_lat == coordinate.latitude and previous_lon == coordinate.longitude:
+                continue
+
+            previous_lat = coordinate.latitude
+            previous_lon = coordinate.longitude
+
+            yield coordinate
+
+    def list_of_timestamps(self) -> list:
+        """ provides list of timestamps"""
+        return [coordinate.timeid for coordinate in self.data]
+
 
     @property
     def file_path(self):

@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow
 
 from initwin import filepicker, sessionrestore
 from navmap import gpsdata, linechartplotter
+from videopl import videoplayer
 
 
 class MainWindow(QMainWindow):
@@ -21,10 +22,11 @@ class MainWindow(QMainWindow):
 
         # Component setup
         self._gps_data: gpsdata.GPSData() = gpsdata.GPSData()
-        self._linechart_window : linechartplotter.LineChartApplication = None
-
         self.session = sessionrestore.Session()
         self.filepicker = filepicker.FilePickerWidget(self.session, menubar)
+
+        self._linechart_window : linechartplotter.LineChartApplication = None
+        self._videoplayer_window : videoplayer.VideoPlayerWidget = None
 
         # UI setup
         self.setWindowTitle("Main Window (Exit all on close)")
@@ -42,13 +44,14 @@ class MainWindow(QMainWindow):
 
         self.initialize_linechart_window()
         self.initialize_interactive_map()
+        self.initialize_videoplayer()
 
     def initialize_linechart_window(self):
         """ initialization of the linechart window"""
         if self._linechart_window is not None:
             self._linechart_window.close()
             self._linechart_window = None
-            
+
         self._linechart_window = linechartplotter.LineChartApplication(self._gps_data)
         self._linechart_window.show()
 
@@ -59,7 +62,19 @@ class MainWindow(QMainWindow):
         pass
 
     def initialize_videoplayer(self):
-        pass
+        """ initialization of the video player window """
+        if self._videoplayer_window is not None:
+            self._videoplayer_window.close()
+            self._linechart_window = None
+
+        self._videoplayer_window = videoplayer.VideoPlayerWidget()
+        self._videoplayer_window.video_player_label.load_video(
+            self.filepicker.video_path,
+            self._gps_data.list_of_timestamps()
+            )
+        self._videoplayer_window.show()
+
+
 
     def cleanup(self):
         """ cleanup to be called at closeEvent """

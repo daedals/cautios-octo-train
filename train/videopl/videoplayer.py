@@ -96,12 +96,10 @@ class VideoPlayerLabel(QLabel):
         self.setPixmap(q_image)
 
     def convert_cv_img_to_q_pixmap(self, cv_image: ndarray):
-        """Provides functionality to convert opencvs ndarray to qts pixmap
-        """
+        """Provides functionality to convert opencvs ndarray to qts pixmap """
         height, width, _ = cv_image.shape
         bytesPerLine = 3 * width
 
-        # q_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
         # unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
         scaled_q_image = unscaled_q_image.scaled(self.display_size.width(), self.display_size.height(), Qt.KeepAspectRatio)
@@ -121,7 +119,7 @@ class VideoPlayerWidget(QWidget):
     - displays it with common functionality
     - emits a signal on 'export'-button press
     """
-    frameExportRequest = Signal()
+    frameExportRequest = Signal(QPixmap)
 
     def __init__(self):
         super().__init__()
@@ -159,18 +157,24 @@ class VideoPlayerWidget(QWidget):
         general_layout.addWidget(button_widget)
         self.setLayout(general_layout)
 
+    def load_video(self, *args, **kwargs):
+        """ wrapper for load_video of videoplayerlabel """
+        self.video_player_label.load_video(*args, **kwargs)
+
     def export_frame(self):
-        # Emit the frameExportRequest signal when the 'Export' button is clicked
-        self.frameExportRequest.emit()
+        """ Slot for export button, sends the current frames pixmap"""
+        self.frameExportRequest.emit(self.video_player_label.pixmap)
 
     def toggle_play_pause(self):
         is_playing = self.video_player_label.toggle_play_pause()
         if is_playing:
             self.prev_button.setEnabled(False)
             self.next_button.setEnabled(False)
+            self.export_button.setEnabled(False)
         else:
             self.prev_button.setEnabled(True)
             self.next_button.setEnabled(True)
+            self.export_button.setEnabled(True)
 
     # def resizeEvent(self, event: QResizeEvent) -> None:
     #     # self.video_player_label.adjustSize()
