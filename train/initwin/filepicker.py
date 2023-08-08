@@ -63,7 +63,6 @@ class FilePickerWidget(QWidget):
         # Create the "File" menu and add actions to it
         file_menu = menubar.addMenu("File")
         file_menu.addAction(open_video_action)
-        file_menu.addSection("hello")
         file_menu.addAction(open_gps_data_action)
         file_menu.addSeparator()
         file_menu.addAction(restore_session_action)
