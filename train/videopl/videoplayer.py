@@ -5,13 +5,14 @@
 
 import cv2
 from numpy import ndarray
+from datetime import timedelta
 
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWidget, QLineEdit
 from PySide6.QtCore import Qt, QTimer, Signal, Slot, QSize
 from PySide6.QtGui import QPixmap, QImage, QResizeEvent, QIntValidator
 
 
-class VideoPlayerLabel(QLabel):
+class COTVideoPlayer(QLabel):
     """Integrates a Video loaded with OpenCV into a displayable Widget and provides functionality
     """
     video_loaded = Signal(int, str)
@@ -53,7 +54,7 @@ class VideoPlayerLabel(QLabel):
         # Set the initial timestamp index and update the video display
         self.current_timestamp_index = 0
         self._update_video_frame()
-        
+
     def toggle_play_pause(self) -> bool:
         """ Toggle play/pause state and start/stop the timer accordingly """
         self.is_playing = not self.is_playing
@@ -118,8 +119,10 @@ class VideoPlayerLabel(QLabel):
         cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
 
         # put the time on the image
+        current_timestamp = self.timestamps[self.current_timestamp_index]
+        timestamp_hhmmss = timedelta(seconds= current_timestamp)
         cv_image = cv2.putText(cv_image,
-                               f"t= {self.timestamps[self.current_timestamp_index]}s",
+                               f"t= {timestamp_hhmmss} ({current_timestamp}s)",
                                (50,20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
         height, width, _ = cv_image.shape
@@ -138,7 +141,7 @@ class VideoPlayerLabel(QLabel):
 
 
 class VideoPlayerWidget(QWidget):
-    """Integrates VideoplayerLabel into a Widget and supplies UI for its functionality
+    """Integrates COTVideoPlayer into a Widget and supplies UI for its functionality
 
     VideoPlayerWidget
     - loads a video
@@ -153,8 +156,8 @@ class VideoPlayerWidget(QWidget):
         # Set up the UI
         general_layout = QVBoxLayout()
 
-        self.video_player_label = VideoPlayerLabel()
-        general_layout.addWidget(self.video_player_label)
+        self._cot_video_player = COTVideoPlayer()
+        general_layout.addWidget(self._cot_video_player)
 
         # Create buttons
         button_widget = QWidget()
@@ -167,8 +170,8 @@ class VideoPlayerWidget(QWidget):
 
         # Connect button signals to their respective functions
         self.play_button.clicked.connect(self.toggle_play_pause)
-        self.prev_button.clicked.connect(self.video_player_label.go_to_previous_timestamp)
-        self.next_button.clicked.connect(self.video_player_label.go_to_next_timestamp)
+        self.prev_button.clicked.connect(self._cot_video_player.go_to_previous_timestamp)
+        self.next_button.clicked.connect(self._cot_video_player.go_to_next_timestamp)
         self.export_button.clicked.connect(self.export_frame)
 
         # Add buttons to UI
@@ -192,9 +195,9 @@ class VideoPlayerWidget(QWidget):
 
         # connect to signals
         self.jump_button.clicked.connect(
-            lambda: self.video_player_label.jump_to_timestamp(int(self.jump_line_edit.text()))
+            lambda: self._cot_video_player.jump_to_timestamp(int(self.jump_line_edit.text()))
             )
-        self.video_player_label.video_loaded.connect(self.configure_load_dependants)
+        self._cot_video_player.video_loaded.connect(self.configure_load_dependants)
 
         # add to layout
         jump_layout.addWidget(textfield1)
@@ -210,10 +213,23 @@ class VideoPlayerWidget(QWidget):
         general_layout.addWidget(jump_widget)
         self.setLayout(general_layout)
 
+    # external functions
     def load_video(self, *args, **kwargs):
-        """ wrapper for load_video of videoplayerlabel """
-        self.video_player_label.load_video(*args, **kwargs)
+        """ wrapper for load_video of COTVideoPlayer """
+        self._cot_video_player.load_video(*args, **kwargs)
 
+    # external Slots
+    @Slot(int)
+    def set_frame_by_timestamp(self, timestamp: int) -> None:
+        """ Slot for other components to request a jump """
+        self._cot_video_player.jump_to_timestamp(timestamp)
+
+    @Slot()
+    def export_frame(self):
+        """ Slot for export button, sends the current frames pixmap"""
+        self.frameExportRequest.emit(self._cot_video_player.pixmap_unscaled)
+
+    # internal Slots
     @Slot(int, str)
     def configure_load_dependants(self, last_timestamp: int, video_path: str):
         """ sets the text for the max jump and introduces an QIntValidator to the QLineEdit"""
@@ -224,14 +240,9 @@ class VideoPlayerWidget(QWidget):
         self.jump_line_edit.setValidator(QIntValidator(0, last_timestamp, self))
 
     @Slot()
-    def export_frame(self):
-        """ Slot for export button, sends the current frames pixmap"""
-        self.frameExportRequest.emit(self.video_player_label.pixmap_unscaled)
-
-    @Slot()
     def toggle_play_pause(self):
-        """ calls videoplayerlabels toggle and sets buttons appriopriatly """
-        is_playing = self.video_player_label.toggle_play_pause()
+        """ calls COTVideoPlayers toggle and sets buttons appriopriatly """
+        is_playing = self._cot_video_player.toggle_play_pause()
         if is_playing:
             self.prev_button.setEnabled(False)
             self.next_button.setEnabled(False)
@@ -240,20 +251,3 @@ class VideoPlayerWidget(QWidget):
             self.prev_button.setEnabled(True)
             self.next_button.setEnabled(True)
             self.export_button.setEnabled(True)
-
-    # def resizeEvent(self, event: QResizeEvent) -> None:
-    #     # self.video_player_label.adjustSize()
-    #     return super().resizeEvent(event)
-
-
-
-if __name__ == "__main__":
-    app = QApplication()
-    window = VideoPlayerWidget()
-
-    # video_path = "D:\\nordlandsbanen.spring.sync.1920x1080.h264.nrk.mp4"
-    video_path = "D:\\nordlandsbanen.winter.sync.1920x1080.h264.nrk.mp4"
-    window.video_player_label.load_video(video_path, [i for i in range(0, 2000)])
-
-    window.show()
-    app.exec()

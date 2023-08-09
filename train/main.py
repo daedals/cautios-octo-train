@@ -73,7 +73,7 @@ class MainWindow(QMainWindow):
             self._linechart_window = None
 
         self._videoplayer_window = videoplayer.VideoPlayerWidget()
-        self._videoplayer_window.video_player_label.load_video(
+        self._videoplayer_window.load_video(
             self.filepicker.video_path,
             self._gps_data.list_of_timestamps()
             )
