@@ -7,7 +7,7 @@ import cv2
 from numpy import ndarray
 from datetime import timedelta
 
-from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWidget, QLineEdit
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWidget, QLineEdit
 from PySide6.QtCore import Qt, QTimer, Signal, Slot, QSize
 from PySide6.QtGui import QPixmap, QImage, QResizeEvent, QIntValidator
 

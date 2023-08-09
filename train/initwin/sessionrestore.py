@@ -24,6 +24,7 @@ class Session:
             return True
         except FileNotFoundError:
             # If the file doesn't exist
+            print("file not found")
             return False
 
     def save(self, _path= None):

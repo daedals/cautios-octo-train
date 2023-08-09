@@ -13,9 +13,9 @@ from PySide6.QtGui import QPixmap
 @dataclass
 class SessionData:
     """ data container containing relevant session data """
-    creation_date: datetime = datetime.now()
     video_file_path: str
     gps_file_path: str
+    creation_date: datetime = datetime.now()
 
 @dataclass
 class GPSDatum:

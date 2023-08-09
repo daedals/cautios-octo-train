@@ -1,35 +1,16 @@
 """proof of concept for a window with an interactable map from a qml file"""
 
 import sys
-from PySide6.QtCore import QUrl, QObject, Signal, Slot, QPointF, QModelIndex
-from PySide6.QtGui import QGuiApplication, QColor
+from PySide6.QtCore import QUrl, QObject, Signal, Slot, QPointF
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
 
-from PySide6.QtQml import QQmlApplicationEngine, QQmlContext
 from PySide6.QtQuickWidgets import QQuickWidget
 
-from gpsdata import GPSData
-from markermodel import MarkerModel
-
-class MapManager(QObject):
-    """Dummy class for communication with qml file"""
-
-    # Signal can be slotted in qml with function called onMarkerRequest
-    markerRequest = Signal(float, float)
-
-    def request_marker(self, _lat: float, _lon: float):
-        """Emits a custom signal to request marker placement on the map"""
-        self.markerRequest.emit(_lat, _lon)
-
-
-    def add_gps_data_points(self, _gpsdata: GPSData): #, _map_object):
-        """adds gps data points to a map object"""
-
-        # Add data points to the map
-        for coordinate in _gpsdata.list_of_coords():
-            # request a marker placement
-            self.request_marker(coordinate.latitude, coordinate.longitude)
-            break
+from .gpsdata import GPSData
+from .markermodel import MarkerModel
+# from gpsdata import GPSData
+# from markermodel import MarkerModel
 
 
 class InteractiveMapWindow(QWidget):

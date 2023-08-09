@@ -1,6 +1,5 @@
 """ file picker """
 
-import sys
 import os
 
 from PySide6.QtCore import Signal, Slot
@@ -10,10 +9,9 @@ from PySide6.QtGui import QAction
 
 from initwin import sessionrestore
 
-
 class FilePickerWidget(QWidget):
     """
-    basic application for opening a file dialog by choosing the respective option in the menubar
+    basic application for opening a file dialog/ restoring a session by choosing the respective option in the menubar
     """
     importRequested = Signal()
 
@@ -94,11 +92,9 @@ class FilePickerWidget(QWidget):
     def restore_session(self):
         """ slot for button, utilizes session """
         if self.session.load():
-            # dummy setting variables to call setter
+            # dummy setting variables to call setter and getter
             self.video_path = self.video_path
             self.gps_data_path = self.gps_data_path
-            # self.gps_data_path_textbox.setText(self.session.get("GPS Data Path"))
-            # self.video_path_textbox.setText(self.session.get("Video File Path"))
 
     def import_button_clicked(self):
         """ Emit a Signal on button click """
@@ -127,7 +123,7 @@ class FilePickerWidget(QWidget):
     def video_path(self) -> str:
         """ Getter for path to video file as str """
         return self.session.get("Video File Path")
-    
+
     @video_path.setter
     def video_path(self, value) -> None:
         """ Setter for video_path, also updates textbox """
@@ -138,7 +134,7 @@ class FilePickerWidget(QWidget):
     def gps_data_path(self) -> str:
         """ Getter for path to gps data file as str """
         return self.session.get("GPS Data Path")
-    
+
     @gps_data_path.setter
     def gps_data_path(self, value) -> None:
         """ Setter for gps_data_path, also updates textbox """
