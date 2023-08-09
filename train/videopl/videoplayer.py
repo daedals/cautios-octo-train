@@ -63,7 +63,7 @@ class COTVideoPlayer(QLabel):
         else:
             self.timer.stop()
         return self.is_playing
-    
+
     @Slot(int)
     def jump_to_timestamp(self, sought_timestamp: int):
         """ slot for signal from parent, looks for a certain timestamp """
@@ -148,7 +148,7 @@ class VideoPlayerWidget(QWidget):
     - displays it with common functionality
     - emits a signal on 'export'-button press
     """
-    frameExportRequest = Signal(QPixmap)
+    frame_export_requested = Signal(QPixmap)
 
     def __init__(self):
         super().__init__()
@@ -227,7 +227,7 @@ class VideoPlayerWidget(QWidget):
     @Slot()
     def export_frame(self):
         """ Slot for export button, sends the current frames pixmap"""
-        self.frameExportRequest.emit(self._cot_video_player.pixmap_unscaled)
+        self.frame_export_requested.emit(self._cot_video_player.pixmap_unscaled)
 
     # internal Slots
     @Slot(int, str)

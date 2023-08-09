@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
         self.session = sessionrestore.Session()
         self.filepicker = filepicker.FilePickerWidget(self.session, menubar)
 
-        self._linechart_window : linechartplotter.LineChartApplication = None
+        self._linechart_window : linechartplotter.COTLineChartWidget = None
         self._videoplayer_window : videoplayer.VideoPlayerWidget = None
 
         self.active_windows = []
@@ -48,6 +48,8 @@ class MainWindow(QMainWindow):
         self.initialize_interactive_map()
         self.initialize_videoplayer()
 
+        self.connect_signals()
+
     def initialize_linechart_window(self):
         """ initialization of the linechart window"""
         if self._linechart_window is not None:
@@ -55,7 +57,7 @@ class MainWindow(QMainWindow):
             self.active_windows.remove(self._linechart_window)
             self._linechart_window = None
 
-        self._linechart_window = linechartplotter.LineChartApplication(self._gps_data)
+        self._linechart_window = linechartplotter.COTLineChartWidget(self._gps_data)
         self.active_windows.append(self._linechart_window)
         self._linechart_window.show()
 
@@ -77,9 +79,14 @@ class MainWindow(QMainWindow):
             self.filepicker.video_path,
             self._gps_data.list_of_timestamps()
             )
-        self._videoplayer_window.frameExportRequest.connect(self.open_image_editor)
         self.active_windows.append(self._videoplayer_window)
         self._videoplayer_window.show()
+
+    def connect_signals(self):
+        """ connect all nessecary signals after all windows have been created """
+        self._videoplayer_window.frame_export_requested.connect(self.open_image_editor)
+        self._linechart_window.timestamp_requested.connect(self._videoplayer_window.set_frame_by_timestamp)
+
 
     @Slot(QPixmap)
     def open_image_editor(self, pixmap: QPixmap):

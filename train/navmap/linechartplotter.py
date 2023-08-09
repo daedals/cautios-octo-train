@@ -3,17 +3,17 @@ Window for displaying Linecharts
 """
 
 # import sys
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 import pyqtgraph as pg
 
 from navmap import gpsdata
 
-class LineChartApplication(QWidget):
+class COTLineChartWidget(QWidget):
     """ Line chart window specifically for speed and altitude against time """
 
     # signal when a point is clicked
-    scatterPointClicked = Signal(int)
+    timestamp_requested = Signal(int)
 
     def __init__(self, _gps_data: gpsdata.GPSData):
         super().__init__()
@@ -45,9 +45,6 @@ class LineChartApplication(QWidget):
         main_layout.addWidget(self.speed_plot)
         main_layout.addWidget(self.altitude_plot)
 
-        # Set the main widget
-        # self.setCentralWidget(main_widget)
-
         # Set the horizontal range for both plots to display only 100 values
         self.speed_plot.setXRange(self._time_list[0] -50, self._time_list[-1] + 50)
         self.altitude_plot.setXRange(self._time_list[0] -50, self._time_list[-1] + 50)
@@ -78,14 +75,12 @@ class LineChartApplication(QWidget):
         self.speed_scatter.sigClicked.connect(self.on_point_clicked)
         self.altitude_scatter.sigClicked.connect(self.on_point_clicked)
 
+    @Slot(list)
     def on_point_clicked(self, _, points):
         """ Slotted method for interaction with point """
 
-        # Get the index of the clicked data point (middle)
+        # Signal gives a list of at least one point, so we choose the middle one
         index = points[int(len(points)/2)].index()
 
-        # Print the corresponding time value to the console
-        print(f"Time value of clicked data point: {self._time_list[index]} ({index})")
-
         # Emit signal
-        self.scatterPointClicked.emit(index)
+        self.timestamp_requested.emit(self._time_list[index])
