@@ -7,8 +7,10 @@ from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, \
                               QGraphicsView, QGraphicsScene, QHBoxLayout
 from PySide6.QtGui import QPixmap, QPen, QColor, QMouseEvent
 
+from COTdataclasses import KeyFrame
+
 class InteractableGraphicsView(QGraphicsView):
-    """Renders choosen key frame and handles mouse events for an interactable image
+    """ Renders choosen key frame and handles mouse events for an interactable image
 
     Renders exactly 4 points and lines connecting them
     """
@@ -34,8 +36,7 @@ class InteractableGraphicsView(QGraphicsView):
 
 
     def draw_points(self):
-        """clear graphicsscene and draw points and lines from buffer
-        """
+        """ clear graphicsscene and draw points and lines from buffer """
         # prepare scene and pen
         self.scene.clear()
         self.scene.addPixmap(self._original_image)
@@ -61,15 +62,13 @@ class InteractableGraphicsView(QGraphicsView):
         # Update the scene with the updated image
 
     def set_current_index(self, desired_index: int):
-        """Set current index as requested if there are points before that index
-        """
+        """ Set current index as requested if there are points before that index """
         self.current_point_index = desired_index \
             if len(self.points) >= desired_index \
             else len(self.points)
 
     def mousePressEvent(self, event: QMouseEvent):
-        """Function to handle mouse click events on the image
-        """
+        """ Function to handle mouse click events on the image """
 
         # Get the mouse coordinates translate them to the picture
         x = int(event.position().x())
@@ -100,14 +99,16 @@ class ImageViewerWidget(QWidget):
     """
     exportImagePointRequest = Signal(list)
 
-    def __init__(self, _pixmap: QPixmap):
+    def __init__(self, _keyframe: KeyFrame):
         super().__init__()
 
         # Set up the UI
         layout = QVBoxLayout()
 
+        self._keyframe = _keyframe
+
         # Create a QGraphicsView to allow interactive drawing
-        self.view = InteractableGraphicsView(_pixmap)
+        self.view = InteractableGraphicsView(_keyframe.pixmap)
         self.view.pointsChanged.connect(self.on_points_changed)
         layout.addWidget(self.view)
 
@@ -150,13 +151,3 @@ class ImageViewerWidget(QWidget):
         if not self.export_button_enabled and len(self.view.points) == 4:
             self.export_button_enabled = True
             self.export_button.setDisabled(False)
-
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    pixmap = QPixmap(".//media//dummy.jpg")
-    window = ImageViewerWidget(pixmap)
-    window.show()
-
-    sys.exit(app.exec())

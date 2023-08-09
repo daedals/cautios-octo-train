@@ -16,7 +16,7 @@ class FilePickerWidget(QWidget):
     importRequested = Signal()
 
     valid_video_file_extensions = [".mp4", ".avi", ".mov"]
-    valid_gps_data_file_extensions = [".csv"]
+    valid_gpsdata_file_extensions = [".csv"]
 
 
     def __init__(self, session: sessionrestore.Session, menubar: QMenuBar):
@@ -33,7 +33,7 @@ class FilePickerWidget(QWidget):
             f"No path to video specified ({FilePickerWidget.valid_video_file_extensions})"
             )
         self.gps_data_path_textbox = QLabel(
-            f"No path to gps data specified ({FilePickerWidget.valid_gps_data_file_extensions})"
+            f"No path to gps data specified ({FilePickerWidget.valid_gpsdata_file_extensions})"
             )
         self.import_button = QPushButton(text= "Import")
 
@@ -52,8 +52,8 @@ class FilePickerWidget(QWidget):
         open_video_action.triggered.connect(self.open_video_dialog)
 
         # Create "Open GPS Data" action and connect it to the slot
-        open_gps_data_action = QAction("Open GPS Data", self)
-        open_gps_data_action.triggered.connect(self.open_gps_data_dialog)
+        open_gpsdata_action = QAction("Open GPS Data", self)
+        open_gpsdata_action.triggered.connect(self.open_gpsdata_dialog)
 
         restore_session_action = QAction("Restore Last Session", self)
         restore_session_action.triggered.connect(self.restore_session)
@@ -61,7 +61,7 @@ class FilePickerWidget(QWidget):
         # Create the "File" menu and add actions to it
         file_menu = menubar.addMenu("File")
         file_menu.addAction(open_video_action)
-        file_menu.addAction(open_gps_data_action)
+        file_menu.addAction(open_gpsdata_action)
         file_menu.addSeparator()
         file_menu.addAction(restore_session_action)
 
@@ -78,7 +78,7 @@ class FilePickerWidget(QWidget):
         raise NameError()
 
     @Slot()
-    def open_gps_data_dialog(self):
+    def open_gpsdata_dialog(self):
         """ prompts user for path of gps data """
         options = QFileDialog.Options()
         gps_data_file, _ = QFileDialog.getOpenFileName(
@@ -105,13 +105,13 @@ class FilePickerWidget(QWidget):
         """ checks if the given filepaths are valid and have a correct extension
         
         valid extensions can be modified via the lists 'valid_video_file_extensions'
-        and 'valid_gps_data_file_extensions'
+        and 'valid_gpsdata_file_extensions'
         """
         if self.video_path is None or self.gps_data_path is None:
             return False
         if not os.path.exists(self.gps_data_path):
             return False
-        if not any(self.gps_data_path.lower().endswith(ext) for ext in self.valid_gps_data_file_extensions):
+        if not any(self.gps_data_path.lower().endswith(ext) for ext in self.valid_gpsdata_file_extensions):
             return False
         if not os.path.exists(self.video_path):
             return False

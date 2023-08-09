@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QLabel
 from PySide6.QtCore import Slot, Signal
 from PySide6.QtGui import QCloseEvent, QPixmap
 
+from COTdataclasses import KeyFrame, GPSDatum
 from initwin import filepicker, sessionrestore
 from navmap import gpsdata, linechartplotter
 from videopl import videoplayer
@@ -22,7 +23,7 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
 
         # Component setup
-        self._gps_data: gpsdata.GPSData() = gpsdata.GPSData()
+        self._gpsdata: gpsdata.GPSData() = gpsdata.GPSData()
         self.session = sessionrestore.Session()
         self.filepicker = filepicker.FilePickerWidget(self.session, menubar)
 
@@ -42,7 +43,7 @@ class MainWindow(QMainWindow):
     def initialize(self):
         """ initialize data and windows, if already initialized show windows if closed """
 
-        self._gps_data.read_csv_data(self.filepicker.gps_data_path)
+        self._gpsdata.read_csv_data(self.filepicker.gps_data_path)
 
         self.initialize_linechart_window()
         self.initialize_interactive_map()
@@ -57,7 +58,7 @@ class MainWindow(QMainWindow):
             self.active_windows.remove(self._linechart_window)
             self._linechart_window = None
 
-        self._linechart_window = linechartplotter.COTLineChartWidget(self._gps_data)
+        self._linechart_window = linechartplotter.COTLineChartWidget(self._gpsdata)
         self.active_windows.append(self._linechart_window)
         self._linechart_window.show()
 
@@ -77,7 +78,7 @@ class MainWindow(QMainWindow):
         self._videoplayer_window = videoplayer.VideoPlayerWidget()
         self._videoplayer_window.load_video(
             self.filepicker.video_path,
-            self._gps_data.list_of_timestamps()
+            self._gpsdata
             )
         self.active_windows.append(self._videoplayer_window)
         self._videoplayer_window.show()
@@ -85,6 +86,9 @@ class MainWindow(QMainWindow):
     def connect_signals(self):
         """ connect all nessecary signals after all windows have been created """
         self._videoplayer_window.frame_export_requested.connect(self.open_image_editor)
+        self._videoplayer_window.frame_export_requested.connect(
+            self._linechart_window.add_keyframe
+        )
         self._videoplayer_window.frame_updated.connect(
             self._linechart_window.update_plot_on_frame_change
         )

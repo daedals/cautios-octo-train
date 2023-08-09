@@ -11,12 +11,14 @@ from PySide6.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWi
 from PySide6.QtCore import Qt, QTimer, Signal, Slot, QSize
 from PySide6.QtGui import QPixmap, QImage, QResizeEvent, QIntValidator
 
+from navmap.gpsdata import GPSData
+from COTdataclasses import GPSDatum, KeyFrame
 
 class COTVideoPlayer(QLabel):
     """Integrates a Video loaded with OpenCV into a displayable Widget and provides functionality
     """
     video_loaded = Signal(int, str)
-    frame_updated = Signal(int)
+    frame_updated = Signal(GPSDatum)
 
     def __init__(self, *args, **kwargs):
 
@@ -30,7 +32,7 @@ class COTVideoPlayer(QLabel):
         # Initialize video properties
         self.video_path = ""
         self.video_capture = None
-        self.timestamps = []
+        self.gpsdata: GPSData = None
         self.current_timestamp_index = 0
         self.is_playing = False
 
@@ -38,18 +40,19 @@ class COTVideoPlayer(QLabel):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._update_video_frame_wrapper)
 
-    def load_video(self, video_path: str, timestamps: list = [0]):
+    def load_video(self, video_path: str, gpsdata: GPSData):
 
-        # Load the video and set the timestamps
+        # Load the video and set the timestamps from gpsdata
         self.video_path = video_path
         self.video_capture = cv2.VideoCapture(video_path)
-        self.timestamps = timestamps
+        self.gpsdata = gpsdata
 
         # read fps information for calculation purposes
         self.video_fps = self.video_capture.get(cv2.CAP_PROP_FPS)
 
         # emit signal for parent, that video was loaded
-        self.video_loaded.emit(timestamps[-1], video_path)
+        last_gpsdatum: GPSDatum = self.gpsdata[-1]
+        self.video_loaded.emit(last_gpsdatum.timestamp, video_path.split("/")[-1])
 
         # Set the initial timestamp index and update the video display
         self.current_timestamp_index = 0
@@ -65,43 +68,56 @@ class COTVideoPlayer(QLabel):
         return self.is_playing
 
     @Slot(int)
-    def jump_to_timestamp(self, sought_timestamp: int):
+    def jump_to_gpsdatum(self, sought_gpsdatum: GPSDatum):
         """ slot for signal from parent, looks for a certain timestamp """
-        if sought_timestamp >= 0 and sought_timestamp <= self.timestamps[-1]:
+        last_gpsdatum: GPSDatum = self.gpsdata[-1]
+        sought_timestamp = sought_gpsdatum.timestamp
+        if sought_timestamp >= 0 and sought_timestamp <= last_gpsdatum.timestamp:
             # find timestamp that is closest to the sought one
-            closest_timestamp = min(self.timestamps, key=lambda x:abs(x-sought_timestamp))
-            self.current_timestamp_index = self.timestamps.index(closest_timestamp)
+            timestamps = [gpsdatum.timestamp for gpsdatum in self.gpsdata]
+            closest_timestamp = min(
+                timestamps,
+                key=lambda x:abs(x-sought_timestamp)
+            )
+            self.current_timestamp_index = timestamps.index(closest_timestamp)
             self._update_video_frame()
 
     @Slot(int)
     def jump_to_index(self, sought_index: int):
         """ slot for signal from parent, looks for a certain index """
-        if sought_index >= 0 and sought_index <= len(self.timestamps):
+        if sought_index >= 0 and sought_index <= len(self.gpsdata):
             self.current_timestamp_index = sought_index
 
     def go_to_previous_timestamp(self):
-        # Move to the previous timestamp and update the video display
+        """ Move to the previous timestamp and update the video display """
         if self.current_timestamp_index > 0:
             self.current_timestamp_index -= 1
             self._update_video_frame()
 
     def go_to_next_timestamp(self):
-        # Move to the next timestamp and update the video display
-        if self.current_timestamp_index < len(self.timestamps) - 1:
+        """ Move to the next timestamp and update the video display """
+        if self.current_timestamp_index < len(self.gpsdata) - 1:
             self.current_timestamp_index += 1
             self._update_video_frame()
+
+    @property
+    def current_keyframe(self):
+        return KeyFrame(
+            self.gpsdata[self.current_timestamp_index],
+            self.pixmap_unscaled
+        )
 
     def _update_video_frame_wrapper(self):
         """ wrapper for update video frame that advances the frame number,
             to be called by the internal timer """
-        self.current_timestamp_index = (self.current_timestamp_index + 1) % len(self.timestamps)
+        self.current_timestamp_index = (self.current_timestamp_index + 1) % len(self.gpsdata)
         self._update_video_frame()
 
     def _update_video_frame(self):
         # Get the current timestamp and set the video capture to the corresponding frame
         # only ever frames with a gps coordinate are shown
-        current_timestamp = self.timestamps[self.current_timestamp_index]
-        frame_number = int(self.video_capture.get(cv2.CAP_PROP_FPS) * current_timestamp)
+        current_gpsdatum: GPSDatum = self.gpsdata[self.current_timestamp_index]
+        frame_number = int(self.video_capture.get(cv2.CAP_PROP_FPS) * current_gpsdatum.timestamp)
         self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
 
         # Read the frame and convert it to RGB format
@@ -116,7 +132,7 @@ class COTVideoPlayer(QLabel):
         self.setPixmap(q_pixmap)
 
         # signal which frame was loaded
-        self.frame_updated.emit(current_timestamp)
+        self.frame_updated.emit(current_gpsdatum)
 
     def convert_cv_img_to_q_pixmap(self, cv_image: ndarray):
         """Provides functionality to convert opencvs ndarray to qts pixmap """
@@ -125,16 +141,17 @@ class COTVideoPlayer(QLabel):
         cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
 
         # put the time on the image
-        current_timestamp = self.timestamps[self.current_timestamp_index]
-        timestamp_hhmmss = timedelta(seconds= current_timestamp)
+        current_gpsdatum: GPSDatum = self.gpsdata[self.current_timestamp_index]
+        timestamp_hhmmss = timedelta(seconds= current_gpsdatum.timestamp)
         cv_image = cv2.putText(cv_image,
-                               f"t= {timestamp_hhmmss} ({current_timestamp}s)",
+                               f"t= {timestamp_hhmmss} ({current_gpsdatum.timestamp}s)",
                                (50,20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
         height, width, _ = cv_image.shape
         bytesPerLine = 3 * width
 
         unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
+
         # save unscaled image for export
         self.pixmap_unscaled = QPixmap.fromImage(unscaled_q_image)
         # unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
@@ -154,8 +171,8 @@ class VideoPlayerWidget(QWidget):
     - displays it with common functionality
     - emits a signal on 'export'-button press
     """
-    frame_export_requested = Signal(QPixmap)
-    frame_updated = Signal(int)
+    frame_export_requested = Signal(KeyFrame)
+    frame_updated = Signal(GPSDatum)
 
     def __init__(self):
         super().__init__()
@@ -202,7 +219,7 @@ class VideoPlayerWidget(QWidget):
 
         # connect to signals
         self.jump_button.clicked.connect(
-            lambda: self._cot_video_player.jump_to_timestamp(int(self.jump_line_edit.text()))
+            lambda: self._cot_video_player.jump_to_gpsdatum(int(self.jump_line_edit.text()))
             )
         self._cot_video_player.video_loaded.connect(self.configure_load_dependants)
 
@@ -232,18 +249,19 @@ class VideoPlayerWidget(QWidget):
     @Slot(int)
     def set_frame_by_timestamp(self, timestamp: int) -> None:
         """ Slot for other components to request a jump """
-        self._cot_video_player.jump_to_timestamp(timestamp)
+        self._cot_video_player.jump_to_gpsdatum(timestamp)
 
     @Slot()
     def export_frame(self):
         """ Slot for export button, sends the current frames pixmap"""
-        self.frame_export_requested.emit(self._cot_video_player.pixmap_unscaled)
+        keyframe = self._cot_video_player.current_keyframe
+        self.frame_export_requested.emit(keyframe)
 
     # internal Slots
     @Slot(int)
-    def frame_updated_wrapper(self, timestamp: int):
+    def frame_updated_wrapper(self, gpsdatum: GPSDatum):
         """ wraps COT_Video_Players signal for other components to access """
-        self.frame_updated.emit(timestamp)
+        self.frame_updated.emit(gpsdatum)
 
     @Slot(int, str)
     def configure_load_dependants(self, last_timestamp: int, video_path: str):

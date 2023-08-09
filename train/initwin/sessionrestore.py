@@ -41,4 +41,5 @@ class Session:
         self.json_data[key] = value
 
     def get(self, *args, **kwargs):
+        """ wrapper for dict getter """
         return self.json_data.get(*args, **kwargs)

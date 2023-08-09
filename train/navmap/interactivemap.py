@@ -15,7 +15,7 @@ from .markermodel import MarkerModel
 
 class InteractiveMapWindow(QWidget):
 
-    def __init__(self, _gps_data: GPSData):
+    def __init__(self, _gpsdata: GPSData):
         super().__init__()
 
         self.current_index = 0
@@ -35,7 +35,7 @@ class InteractiveMapWindow(QWidget):
         self.model.point_clicked.connect(self.receive_clicked_signal)
 
         print("Adding markers to model")
-        for i, coordinate in enumerate(_gps_data.data):
+        for i, coordinate in enumerate(_gpsdata.data):
             color = QColor(["red", "green"][i == self.current_index])
             self.model.addMarker(
                 QPointF(coordinate.latitude, coordinate.longitude), color

@@ -12,6 +12,9 @@ class GPSData:
         self.data = []
         self._file_path :str = None
 
+    def __getitem__(self, index: int) -> GPSDatum:
+        return self.data[index]
+
     def read_csv_data(self, _file_path):
         """ Reads data from specific gps csv files and converts them to a list of tuples """
 
