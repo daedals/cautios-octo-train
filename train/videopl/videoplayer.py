@@ -73,6 +73,12 @@ class COTVideoPlayer(QLabel):
             self.current_timestamp_index = self.timestamps.index(closest_timestamp)
             self._update_video_frame()
 
+    @Slot(int)
+    def jump_to_index(self, sought_index: int):
+        """ slot for signal from parent, looks for a certain index """
+        if sought_index >= 0 and sought_index <= len(self.timestamps):
+            self.current_timestamp_index = sought_index
+
     def go_to_previous_timestamp(self):
         # Move to the previous timestamp and update the video display
         if self.current_timestamp_index > 0:
@@ -110,7 +116,7 @@ class COTVideoPlayer(QLabel):
         self.setPixmap(q_pixmap)
 
         # signal which frame was loaded
-        self.frame_updated.emit(self.current_timestamp_index)
+        self.frame_updated.emit(current_timestamp)
 
     def convert_cv_img_to_q_pixmap(self, cv_image: ndarray):
         """Provides functionality to convert opencvs ndarray to qts pixmap """
@@ -149,6 +155,7 @@ class VideoPlayerWidget(QWidget):
     - emits a signal on 'export'-button press
     """
     frame_export_requested = Signal(QPixmap)
+    frame_updated = Signal(int)
 
     def __init__(self):
         super().__init__()
@@ -213,6 +220,9 @@ class VideoPlayerWidget(QWidget):
         general_layout.addWidget(jump_widget)
         self.setLayout(general_layout)
 
+        # connect wrapper for signal
+        self._cot_video_player.frame_updated.connect(self.frame_updated_wrapper)
+
     # external functions
     def load_video(self, *args, **kwargs):
         """ wrapper for load_video of COTVideoPlayer """
@@ -230,6 +240,11 @@ class VideoPlayerWidget(QWidget):
         self.frame_export_requested.emit(self._cot_video_player.pixmap_unscaled)
 
     # internal Slots
+    @Slot(int)
+    def frame_updated_wrapper(self, timestamp: int):
+        """ wraps COT_Video_Players signal for other components to access """
+        self.frame_updated.emit(timestamp)
+
     @Slot(int, str)
     def configure_load_dependants(self, last_timestamp: int, video_path: str):
         """ sets the text for the max jump and introduces an QIntValidator to the QLineEdit"""

@@ -23,13 +23,13 @@ class COTLineChartWidget(QWidget):
         altitude_list = [coordinate.altitude for coordinate in _gps_data.list_of_coords()]
         self._time_list = [coordinate.timeid for coordinate in _gps_data.list_of_coords()]
 
+        print(len(self._time_list), self._time_list[-1])
+
         # Set the application window title
         self.setWindowTitle("Line Chart Window "+ _gps_data.file_path.split("//")[-1])
         self.setToolTip(
             "Click on a data point to navigate to its time stamp.\n"+ 
-            "Data points are only shown if the train actually moved."+
-            "Long flat sections can be explained with a stop of the train or"+
-            "a pause in the video for the synchronization of all 4 seasons"
+            "The vertical line represents your position and may be dragged.\n"
             )
 
         # Create the main layout
@@ -50,7 +50,7 @@ class COTLineChartWidget(QWidget):
         self.altitude_plot.setXRange(self._time_list[0] -50, self._time_list[-1] + 50)
 
         # Plot speed and altitude against time
-        self.speed_curve = self.speed_plot.plot(pen='b')
+        self.speed_curve = self.speed_plot.plot(pen='r')
         self.altitude_curve = self.altitude_plot.plot(pen='g')
 
         # Set the horizontal scaling of the plots to be the same
@@ -61,19 +61,29 @@ class COTLineChartWidget(QWidget):
         self.altitude_curve.setData(self._time_list, altitude_list)
 
         # Plot speed and altitude against time using ScatterPlotItem for individual points
-        self.speed_scatter = pg.ScatterPlotItem(x=self._time_list, y=speed_list, pen='b', symbol='o', size=3, brush='b')
+        self.speed_scatter = pg.ScatterPlotItem(x=self._time_list, y=speed_list, pen='r', symbol='o', size=3, brush='r')
         self.altitude_scatter = pg.ScatterPlotItem(x=self._time_list, y=altitude_list, pen='g', symbol='o', size=3, brush='g')
 
         # Add the ScatterPlotItem to the plots
         self.speed_plot.addItem(self.speed_scatter)
         self.altitude_plot.addItem(self.altitude_scatter)
 
-        self.speed_scatter.setData(x=self._time_list, y=speed_list)
-        self.altitude_scatter.setData(x=self._time_list, y=altitude_list)
+        # self.speed_scatter.setData(x=self._time_list, y=speed_list)
+        # self.altitude_scatter.setData(x=self._time_list, y=altitude_list)
+
+        # create vertical lines to indicate position
+        self.speed_position_indicator = pg.InfiniteLine(0, angle= 90, bounds=[0, self._time_list[-1]])
+        self.altitude_position_indicator = pg.InfiniteLine(0, angle= 90, bounds=[0, self._time_list[-1]])
+
+        # add lines to plot
+        self.speed_plot.addItem(self.speed_position_indicator)
+        self.altitude_plot.addItem(self.altitude_position_indicator)
 
         # Connect the clicked signal of the ScatterPlotItem to handle interaction with data points
         self.speed_scatter.sigClicked.connect(self.on_point_clicked)
         self.altitude_scatter.sigClicked.connect(self.on_point_clicked)
+
+        # self.timestamp_requested.connect(self.update_plot_on_frame_change)
 
     @Slot(list)
     def on_point_clicked(self, _, points):
@@ -84,3 +94,9 @@ class COTLineChartWidget(QWidget):
 
         # Emit signal
         self.timestamp_requested.emit(self._time_list[index])
+
+    @Slot(int)
+    def update_plot_on_frame_change(self, timestamp: int):
+        """ updates visuals when a new frame is displayed """
+        self.speed_position_indicator.setPos(timestamp)
+        self.altitude_position_indicator.setPos(timestamp)

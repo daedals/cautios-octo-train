@@ -85,6 +85,10 @@ class MainWindow(QMainWindow):
     def connect_signals(self):
         """ connect all nessecary signals after all windows have been created """
         self._videoplayer_window.frame_export_requested.connect(self.open_image_editor)
+        self._videoplayer_window.frame_updated.connect(
+            self._linechart_window.update_plot_on_frame_change
+        )
+
         self._linechart_window.timestamp_requested.connect(self._videoplayer_window.set_frame_by_timestamp)
 
 
