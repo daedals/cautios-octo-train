@@ -1,4 +1,4 @@
-""" main window that uses all other windows in inheritance or instantiation """
+""" main window that uses all other components in inheritance or instantiation """
 
 import sys
 
@@ -29,9 +29,10 @@ class MainWindow(QMainWindow):
         self._linechart_window : linechartplotter.LineChartApplication = None
         self._videoplayer_window : videoplayer.VideoPlayerWidget = None
 
+        self.active_windows = []
+
         # UI setup
         self.setWindowTitle("Main Window (Exit all on close)")
-
 
         # connect window initialization to filepickers import signal
         self.filepicker.importRequested.connect(self.initialize)
@@ -51,9 +52,11 @@ class MainWindow(QMainWindow):
         """ initialization of the linechart window"""
         if self._linechart_window is not None:
             self._linechart_window.close()
+            self.active_windows.remove(self._linechart_window)
             self._linechart_window = None
 
         self._linechart_window = linechartplotter.LineChartApplication(self._gps_data)
+        self.active_windows.append(self._linechart_window)
         self._linechart_window.show()
 
     def initialize_interactive_map(self):
@@ -66,6 +69,7 @@ class MainWindow(QMainWindow):
         """ initialization of the video player window """
         if self._videoplayer_window is not None:
             self._videoplayer_window.close()
+            self.active_windows.remove(self._videoplayer_window)
             self._linechart_window = None
 
         self._videoplayer_window = videoplayer.VideoPlayerWidget()
@@ -74,22 +78,19 @@ class MainWindow(QMainWindow):
             self._gps_data.list_of_timestamps()
             )
         self._videoplayer_window.frameExportRequest.connect(self.open_image_editor)
+        self.active_windows.append(self._videoplayer_window)
         self._videoplayer_window.show()
 
     @Slot(QPixmap)
     def open_image_editor(self, pixmap: QPixmap):
         """ slot for export signal from _video_player_window, opens image in new window """
-        # print("i'm trying to export")
-        # self.window = QLabel()
-        # self.window.setPixmap(pixmap)
-        # self.window.show()
         self._image_editor_window = imageeditor.ImageViewerWidget(pixmap)
         self._image_editor_window.show()
 
 
     def cleanup(self):
         """ cleanup to be called at closeEvent """
-        for window in [self._linechart_window, self._videoplayer_window]:
+        for window in self.active_windows:
             if window is not None:
                 window.close()
                 window = None

@@ -5,6 +5,7 @@
 
 import cv2
 from numpy import ndarray
+
 from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWidget, QLineEdit
 from PySide6.QtCore import Qt, QTimer, Signal, Slot, QSize
 from PySide6.QtGui import QPixmap, QImage, QResizeEvent, QIntValidator
@@ -13,7 +14,8 @@ from PySide6.QtGui import QPixmap, QImage, QResizeEvent, QIntValidator
 class VideoPlayerLabel(QLabel):
     """Integrates a Video loaded with OpenCV into a displayable Widget and provides functionality
     """
-    video_loaded = Signal(int)
+    video_loaded = Signal(int, str)
+    frame_updated = Signal(int)
 
     def __init__(self, *args, **kwargs):
 
@@ -42,26 +44,32 @@ class VideoPlayerLabel(QLabel):
         self.video_capture = cv2.VideoCapture(video_path)
         self.timestamps = timestamps
 
-        self.video_loaded.emit(len(timestamps))
-
+        # read fps information for calculation purposes
         self.video_fps = self.video_capture.get(cv2.CAP_PROP_FPS)
+
+        # emit signal for parent, that video was loaded
+        self.video_loaded.emit(timestamps[-1], video_path)
 
         # Set the initial timestamp index and update the video display
         self.current_timestamp_index = 0
         self._update_video_frame()
         
     def toggle_play_pause(self) -> bool:
-        """Toggle play/pause state and start/stop the timer accordingly
-        """
+        """ Toggle play/pause state and start/stop the timer accordingly """
         self.is_playing = not self.is_playing
         if self.is_playing:
-            self.timer.start(1/self.video_fps)  # 33 milliseconds (30 frames per second)
+            self.timer.start(1/self.video_fps)
         else:
             self.timer.stop()
         return self.is_playing
-    def jump_to_index(self, index: int):
-        if index >= 0 and index < len(self.timestamps):
-            self.current_timestamp_index = index
+    
+    @Slot(int)
+    def jump_to_timestamp(self, sought_timestamp: int):
+        """ slot for signal from parent, looks for a certain timestamp """
+        if sought_timestamp >= 0 and sought_timestamp <= self.timestamps[-1]:
+            # find timestamp that is closest to the sought one
+            closest_timestamp = min(self.timestamps, key=lambda x:abs(x-sought_timestamp))
+            self.current_timestamp_index = self.timestamps.index(closest_timestamp)
             self._update_video_frame()
 
     def go_to_previous_timestamp(self):
@@ -77,13 +85,14 @@ class VideoPlayerLabel(QLabel):
             self._update_video_frame()
 
     def _update_video_frame_wrapper(self):
-        """wrapper for update video frame that advances the frame number, to be called by the internal timer
-        """
+        """ wrapper for update video frame that advances the frame number,
+            to be called by the internal timer """
         self.current_timestamp_index = (self.current_timestamp_index + 1) % len(self.timestamps)
         self._update_video_frame()
 
     def _update_video_frame(self):
         # Get the current timestamp and set the video capture to the corresponding frame
+        # only ever frames with a gps coordinate are shown
         current_timestamp = self.timestamps[self.current_timestamp_index]
         frame_number = int(self.video_capture.get(cv2.CAP_PROP_FPS) * current_timestamp)
         self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
@@ -92,19 +101,32 @@ class VideoPlayerLabel(QLabel):
         ret, frame = self.video_capture.read()
         if not ret:
             self.timer.stop()
-            print("SOmething went wrong")
+            print("Something went wrong")
             return
 
         # Display the frame in the widget
         q_pixmap = self.convert_cv_img_to_q_pixmap(frame)
         self.setPixmap(q_pixmap)
 
+        # signal which frame was loaded
+        self.frame_updated.emit(self.current_timestamp_index)
+
     def convert_cv_img_to_q_pixmap(self, cv_image: ndarray):
         """Provides functionality to convert opencvs ndarray to qts pixmap """
+
+        # fix color channels
+        cv_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+
+        # put the time on the image
+        cv_image = cv2.putText(cv_image,
+                               f"t= {self.timestamps[self.current_timestamp_index]}s",
+                               (50,20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
         height, width, _ = cv_image.shape
         bytesPerLine = 3 * width
 
         unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        # save unscaled image for export
         self.pixmap_unscaled = QPixmap.fromImage(unscaled_q_image)
         # unscaled_q_image = QImage(cv_image.data, width, height, bytesPerLine, QImage.Format_RGB888)
         scaled_q_image = unscaled_q_image.scaled(self.display_size.width(), self.display_size.height(), Qt.KeepAspectRatio)
@@ -170,9 +192,9 @@ class VideoPlayerWidget(QWidget):
 
         # connect to signals
         self.jump_button.clicked.connect(
-            lambda: self.video_player_label.jump_to_index(int(self.jump_line_edit.text()))
+            lambda: self.video_player_label.jump_to_timestamp(int(self.jump_line_edit.text()))
             )
-        self.video_player_label.video_loaded.connect(self.configure_jump_widget)
+        self.video_player_label.video_loaded.connect(self.configure_load_dependants)
 
         # add to layout
         jump_layout.addWidget(textfield1)
@@ -192,11 +214,14 @@ class VideoPlayerWidget(QWidget):
         """ wrapper for load_video of videoplayerlabel """
         self.video_player_label.load_video(*args, **kwargs)
 
-    @Slot(int)
-    def configure_jump_widget(self, max_index: int):
+    @Slot(int, str)
+    def configure_load_dependants(self, last_timestamp: int, video_path: str):
         """ sets the text for the max jump and introduces an QIntValidator to the QLineEdit"""
-        self.maximum_jump_tf.setText(f" < {max_index}")
-        self.jump_line_edit.setValidator(QIntValidator(0, max_index-1, self))
+        self.setWindowTitle("Video Player " + video_path)
+
+        # configure jump widget with last possible timestamp in text and as limiter
+        self.maximum_jump_tf.setText(f" < {last_timestamp}")
+        self.jump_line_edit.setValidator(QIntValidator(0, last_timestamp, self))
 
     @Slot()
     def export_frame(self):
@@ -205,6 +230,7 @@ class VideoPlayerWidget(QWidget):
 
     @Slot()
     def toggle_play_pause(self):
+        """ calls videoplayerlabels toggle and sets buttons appriopriatly """
         is_playing = self.video_player_label.toggle_play_pause()
         if is_playing:
             self.prev_button.setEnabled(False)
