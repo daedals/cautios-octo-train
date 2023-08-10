@@ -2,8 +2,8 @@
 """
 
 import sys
-from PySide6.QtCore import Signal, QLineF, QRectF
-from PySide6.QtWidgets import QApplication, QPushButton, QVBoxLayout, QWidget, \
+from PySide6.QtCore import Signal, Slot, QLineF, QRectF
+from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget, \
                               QGraphicsView, QGraphicsScene, QHBoxLayout
 from PySide6.QtGui import QPixmap, QPen, QColor, QMouseEvent
 
@@ -33,7 +33,6 @@ class InteractableGraphicsView(QGraphicsView):
         # prepare internal point storage
         self.points = []
         self.current_point_index = 0
-
 
     def draw_points(self):
         """ clear graphicsscene and draw points and lines from buffer """
@@ -95,9 +94,9 @@ class InteractableGraphicsView(QGraphicsView):
 
 
 class ImageViewerWidget(QWidget):
-    """Standalone Window providing utility for InteractableGraphicsView
-    """
-    exportImagePointRequest = Signal(list)
+    """ Standalone Window providing utility for InteractableGraphicsView """
+
+    export_image_points_requested = Signal(list)
 
     def __init__(self, _keyframe: KeyFrame):
         super().__init__()
@@ -143,8 +142,9 @@ class ImageViewerWidget(QWidget):
 
     def export_button_clicked(self):
         """ Emit the "exportImagePointRequest" signal with the current points list """
-        self.exportImagePointRequest.emit(self.points)
+        self.export_image_points_requested.emit(self.view.points)
 
+    @Slot(int, int, int)
     def on_points_changed(self, i, x, y):
         """ Function to handle mouse click events on the image """
         self.buttons[i].setText(f"Point {i+1} ({x}, {y})")

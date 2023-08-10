@@ -63,7 +63,9 @@ class ExtrinsicCameraParameters:
 @dataclass
 class IntrinsicCameraParameters:
     """ intrinsic camera parameters """
+    # distance of camera to image plane
     focal_length: float
-    principal_point: QPointF
+    # distance from image plane to reference world x-y-plane
+    principal_length: float
     image_width: int
     image_height: int

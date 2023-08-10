@@ -12,6 +12,7 @@ from navmap import gpsdata, linechartplotter
 from videopl import videoplayer
 from imagedit import imageeditor
 
+from COTmath.calibration import CameraCalibration
 
 class MainWindow(QMainWindow):
     """ main window """
@@ -96,12 +97,17 @@ class MainWindow(QMainWindow):
         self._linechart_window.timestamp_requested.connect(self._videoplayer_window.set_frame_by_timestamp)
 
 
-    @Slot(QPixmap)
-    def open_image_editor(self, pixmap: QPixmap):
+    @Slot(KeyFrame)
+    def open_image_editor(self, keyframe: KeyFrame):
         """ slot for export signal from _video_player_window, opens image in new window """
-        self._image_editor_window = imageeditor.ImageViewerWidget(pixmap)
+        self._image_editor_window = imageeditor.ImageViewerWidget(keyframe)
+        self._image_editor_window.export_image_points_requested.connect(self.refer_exported_image_points)
+        self.active_windows.append(self._image_editor_window)
         self._image_editor_window.show()
 
+    @Slot(list)
+    def refer_exported_image_points(self, image_points: list):
+        calibration = CameraCalibration(image_points, 1435)
 
     def cleanup(self):
         """ cleanup to be called at closeEvent """
