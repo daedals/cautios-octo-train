@@ -19,7 +19,7 @@ class FilePickerWidget(QWidget):
     valid_gpsdata_file_extensions = [".csv"]
 
 
-    def __init__(self, session: sessionrestore.Session, menubar: QMenuBar):
+    def __init__(self, session: sessionrestore.SessionHandler, menubar: QMenuBar):
         super().__init__()
 
         self.session = session

@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
 
         # Component setup
         self._gpsdata: gpsdata.GPSData() = gpsdata.GPSData()
-        self.session = sessionrestore.Session()
+        self.session = sessionrestore.SessionHandler()
         self.filepicker = filepicker.FilePickerWidget(self.session, menubar)
 
         self._linechart_window : linechartplotter.COTLineChartWidget = None

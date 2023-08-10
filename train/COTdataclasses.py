@@ -15,6 +15,8 @@ class SessionData:
     """ data container containing relevant session data """
     video_file_path: str
     gps_file_path: str
+    image_width: int
+    image_height: int
     creation_date: datetime = datetime.now()
 
 @dataclass
@@ -35,30 +37,22 @@ class GPSDatum:
     altitude: float
 
 @dataclass
-class KeyFrame:
-    """ data container containing relevant keyframe data """
-    gpsdata: GPSDatum
-    pixmap: QPixmap
-
-@dataclass
 class LocationDatum:
-    """ location with relativ x, y, z """
-    x: float
-    y: float
-    z: float
+    """ location with camera offset x, y, z relative to optical axis' intersection with world X-Y plane"""
+    x_offset: float
+    y_offset: float
+    z_offset: float
 
 @dataclass
 class OrientationDatum:
-    """ orientation with pitch, ywa and roll """
-    x: float
-    y: float
-    z: float
+    """ camera orientation with swing, tilt and pan """
+    swing: float
+    tilt: float
+    pan: float
 
 @dataclass
-class ExtrinsicCameraParameters:
+class ExtrinsicCameraParameters(LocationDatum, OrientationDatum):
     """ extrinsic camera parameters """
-    location: LocationDatum
-    orientation: OrientationDatum
 
 @dataclass
 class IntrinsicCameraParameters:
@@ -67,5 +61,21 @@ class IntrinsicCameraParameters:
     focal_length: float
     # distance from image plane to reference world x-y-plane
     principal_length: float
-    image_width: int
-    image_height: int
+
+@dataclass
+class ImagePointContainer:
+    """ just conviniently stores 4 image points """
+    A: QPointF
+    B: QPointF
+    C: QPointF
+    D: QPointF
+
+
+@dataclass
+class KeyFrame:
+    """ data container containing relevant keyframe data """
+    gps: GPSDatum
+    pixmap: QPixmap
+    image_point: ImagePointContainer
+    intrinsics: IntrinsicCameraParameters
+    extrinsics: ExtrinsicCameraParameters

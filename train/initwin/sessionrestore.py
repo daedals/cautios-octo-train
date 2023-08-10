@@ -2,15 +2,20 @@
 
 import sys
 import json
+from COTdataclasses import SessionData
+from datetime import datetime
 
 
-class Session:
+class SessionHandler:
     """ wrapper for dict able to read from json"""
 
     def __init__(self):
         self.json_data = {}
-        # self.get = self.json_data.get
+        self.session_data: SessionData = None
         self._path = "session_data.json"
+
+    def initialize(self, video_file_path: str, gps_file_path: str, image_width: int, image_height: int, creation_date: datetime = datetime.now()):
+        self.session_data = SessionData(video_file_path, gps_file_path, image_width, image_height, creation_date)
 
     def load(self, _path= None):
         """load data from json in static location"""

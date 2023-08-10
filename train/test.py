@@ -22,8 +22,8 @@ if __name__ == "__main__":
 
     points = [[points[0]-average_x, points[1]-average_y] for points in points]
 
-
+    w_points = add_to_points(points, average_x, average_y)
     cw_points = add_to_points(rotate_points(points, 30), average_x, average_y)
     ccw_points = add_to_points(rotate_points(points, -30), average_x, average_y)
 
-    CameraCalibration(ccw_points, 1435)
+    CameraCalibration(w_points, 1435)
