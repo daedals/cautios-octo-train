@@ -50,8 +50,8 @@ class COTVideoPlayer(QLabel):
 
         # read fps information for calculation purposes
         self.video_fps = self.video_capture.get(cv2.CAP_PROP_FPS)
-        self.image_width = cv2.CAP_PROP_FRAME_WIDTH
-        self.image_height = cv2.CAP_PROP_FRAME_HEIGHT
+        self.image_width = int(self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        self.image_height = int(self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
         # Set the initial timestamp index and update the video display
         self.current_timestamp_index = 0

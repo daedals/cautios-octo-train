@@ -7,12 +7,13 @@ from PySide6.QtCore import Slot, Signal
 from PySide6.QtGui import QCloseEvent, QPixmap
 
 from COTdataclasses import KeyFrame, GPSDatum
-
 from tools.handler import GPSDataHandler, SessionHandler, KeyFrameHandler
-from tools.math import CameraCalibration
 
 from datawidgets import filepicker
+from datawidgets.dataview import DataViewWidget
+
 from gpswidgets.linechartplotter import COTLineChartWidget
+
 from imgwidgets.imageeditor import ImageViewerWidget
 from imgwidgets.videoplayer import VideoPlayerWidget
 
@@ -37,11 +38,13 @@ class MainWindow(QMainWindow):
         self._linechart_window: COTLineChartWidget = COTLineChartWidget()
         self._videoplayer_window: VideoPlayerWidget = VideoPlayerWidget()
         self._image_editor_window: ImageViewerWidget = ImageViewerWidget()
+        self._dataview_window: DataViewWidget = DataViewWidget()
 
         self.active_windows = [
             self._linechart_window,
             self._videoplayer_window,
-            self._image_editor_window
+            self._image_editor_window,
+            self._dataview_window
         ]
 
         # UI setup
@@ -78,7 +81,14 @@ class MainWindow(QMainWindow):
         )
         # don't show, shows itself, when first keyframe is exported
 
-    
+        self._dataview_window.initialize(
+            self._session_handler,
+            self._gpsdata_handler,
+            self._keyframe_handler
+        )
+        self._dataview_window.show()
+
+
 
     def cleanup(self):
         """ cleanup to be called at closeEvent """

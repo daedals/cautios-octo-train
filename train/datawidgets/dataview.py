@@ -29,10 +29,9 @@ class DataViewWidget(AbstractBaseWidget):
         self.general_data_values = [
             QLabel(self._session_handler.session_data.video_file_path.split("/")[-1]),
             QLabel(self._session_handler.session_data.video_file_path.split("/")[-1]),
-            QLabel(f"\
-                   {self._session_handler.session_data.image_width},\
-                   {self._session_handler.session_data.image_height}\
-            "),
+            QLabel(
+                f"{self._session_handler.session_data.image_width}, {self._session_handler.session_data.image_height}"
+            ),
             QLabel("1435")
         ]
 
@@ -79,23 +78,25 @@ class DataViewWidget(AbstractBaseWidget):
     def update_table(self, keyframe: KeyFrame) -> None:
         """ updates the data table """
         col = 0
-        col_max = self.table.colorCount()
+        col_max = self.table.columnCount()
 
         # if its the first keyframe, there is no column for average
-        if col_max == 0: col = 1
-
-        for col in range(col_max - 1):
-            # get the timestamp
-            item: QTableWidgetItem = self.table.item(0, col)
-            # if timestamp is already in the table, update the row
-            if keyframe.gps.timestamp == int(item.text()):
-                break
+        if col_max == 0:
+            self.table.setColumnCount(2)
+            self.table.setHorizontalHeaderLabels(["1", "Average"])
         else:
-            # happens anyway, but for clarification
-            col = col_max - 1
-            # insert a row at the end before average and change horizontal header labels
-            self.table.insertColumn(col)
-            self.table.setHorizontalHeaderLabels([*[str(i) for i in range(1, col_max)], "Average"])
+            for col in range(col_max - 1):
+                # get the timestamp
+                item: QTableWidgetItem = self.table.item(0, col)
+                # if timestamp is already in the table, update the row
+                if keyframe.gps.timestamp == int(item.text()):
+                    break
+            else:
+                # happens anyway, but for clarification
+                col = col_max - 1
+                # insert a row at the end before average and change horizontal header labels
+                self.table.insertColumn(col)
+                # self.table.setHorizontalHeaderLabels([*[str(i) for i in range(1, col_max)], "Average"])
             
         # set data at determined
         self.update_column(col, keyframe)

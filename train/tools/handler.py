@@ -12,7 +12,8 @@ from datetime import time, datetime
 
 from PySide6.QtCore import Signal, QObject
 
-from COTdataclasses import GPSDatum, SessionData, KeyFrame
+from COTdataclasses import GPSDatum, SessionData, KeyFrame, IntrinsicCameraParameters, ExtrinsicCameraParameters
+from tools.math import determine_camera_paremeters
 
 
 class GPSDataHandler(QObject):
@@ -155,8 +156,18 @@ class KeyFrameHandler(QObject):
             return None
 
     def request_keyframe(self, keyframe: KeyFrame) -> None:
+        # add keyframe if its not already in there
+        print(f"keyframe changed, number of keyframes is {len(self.data)}")
         if keyframe not in self.data:
             self.data.append(keyframe)
+
+        # if keyframe has sufficient data, apply camera calibration
+        if keyframe.gps is not None and keyframe.image_point is not None and keyframe.intrinsics is None:
+            intrinsics: IntrinsicCameraParameters
+            extrinsics: ExtrinsicCameraParameters 
+            intrinsics, extrinsics = determine_camera_paremeters(keyframe, 1435)
+            keyframe.intrinsics = intrinsics
+            keyframe.extrinsics = extrinsics
 
         self.current_keyframe = keyframe
         self.keyframe_requested.emit(keyframe)
