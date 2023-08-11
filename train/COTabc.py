@@ -1,7 +1,6 @@
 """ Intrdoduces different abstract base classes:
 
 AbstractBaseWidget
-AbstractBaseHandler
 """
 
 from abc import ABC, abstractmethod
@@ -81,6 +80,3 @@ class AbstractBaseWidget(ABC):
         raise NotImplementedError(
             "Should implement"
         )
-
-class AbstractBaseHandler(ABC):
-    """ abstract base class for every handler """
