@@ -106,6 +106,7 @@ class GPSDataHandler(QObject):
             # skip first and last item
             if i == 0 or i == item_count - 1:
                 gpsdatum.gradient = 0
+                continue
 
             gradient = 0
             gradients = []
