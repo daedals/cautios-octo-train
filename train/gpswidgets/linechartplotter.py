@@ -86,8 +86,8 @@ class COTLineChartWidget(AbstractBaseWidget):
     def react_to_keyframe_change(self, keyframe: KeyFrame):
         # add a vertical line as an indicator for a keyframe
         self._keyframes.append(keyframe)
-        speed_keyframe_indicator = pg.InfiniteLine(keyframe.gpsdata.timestamp, angle= 90, movable=False, pen="b")
-        altitude_keyframe_indicator = pg.InfiniteLine(keyframe.gpsdata.timestamp, angle= 90, movable=False, pen="b")
+        speed_keyframe_indicator = pg.InfiniteLine(keyframe.gps.timestamp, angle= 90, movable=False, pen="b")
+        altitude_keyframe_indicator = pg.InfiniteLine(keyframe.gps.timestamp, angle= 90, movable=False, pen="b")
 
         self.speed_plot.addItem(speed_keyframe_indicator)
         self.altitude_plot.addItem(altitude_keyframe_indicator)

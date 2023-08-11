@@ -131,9 +131,6 @@ class CameraCalibration:
             b = sorted_points[2]
             c = sorted_points[1]
 
-        print(_image_points)
-        print(a, b, c, d)
-
         return a, b, c, d
 
 def assign_points_to_assumed_order(_image_points):
@@ -159,9 +156,6 @@ def assign_points_to_assumed_order(_image_points):
     else:
         b = sorted_points[2]
         c = sorted_points[1]
-
-    print(_image_points)
-    print(a, b, c, d)
 
     return a, b, c, d
 

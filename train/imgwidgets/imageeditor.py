@@ -147,7 +147,7 @@ class ImageViewerWidget(AbstractBaseWidget):
     def react_to_keyframe_change(self, keyframe: KeyFrame):
         # reset buttons
         for i in range(1, 5):
-            self.buttons[i].setText(f"Point {i}")
+            self.buttons[i-1].setText(f"Point {i}")
         # remember current keyframe for exporting them later
         self.current_keyframe = keyframe
         self.view.load_keyframe(keyframe)

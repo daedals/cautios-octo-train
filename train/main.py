@@ -78,50 +78,7 @@ class MainWindow(QMainWindow):
         )
         # don't show, shows itself, when first keyframe is exported
 
-
-    def initialize_linechart_window(self):
-        """ initialization of the linechart window"""
-        if self._linechart_window is not None:
-            self._linechart_window.close()
-            self.active_windows.remove(self._linechart_window)
-            self._linechart_window = None
-
-        self._linechart_window = COTLineChartWidget(self._gpsdata_handler)
-        self.active_windows.append(self._linechart_window)
-        self._linechart_window.show()
-
-    def initialize_interactive_map(self):
-        pass
-
-    def initialize_datadisplay(self):
-        pass
-
-    def initialize_videoplayer(self):
-        """ initialization of the video player window """
-        if self._videoplayer_window is not None:
-            self._videoplayer_window.close()
-            self.active_windows.remove(self._videoplayer_window)
-            self._linechart_window = None
-
-        self._videoplayer_window = videoplayer.VideoPlayerWidget()
-        self._videoplayer_window.load_video(
-            self.filepicker.video_path,
-            self._gpsdata_handler
-            )
-        self.active_windows.append(self._videoplayer_window)
-        self._videoplayer_window.show()
-
-    @Slot(KeyFrame)
-    def open_image_editor(self, keyframe: KeyFrame):
-        """ slot for export signal from _video_player_window, opens image in new window """
-        self._image_editor_window = imageeditor.ImageViewerWidget(keyframe)
-        self._image_editor_window.export_image_points_requested.connect(self.refer_exported_image_points)
-        self.active_windows.append(self._image_editor_window)
-        self._image_editor_window.show()
-
-    @Slot(list)
-    def refer_exported_image_points(self, image_points: list):
-        calibration = CameraCalibration(image_points, 1435)
+    
 
     def cleanup(self):
         """ cleanup to be called at closeEvent """
