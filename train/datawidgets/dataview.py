@@ -1,15 +1,23 @@
+""" Definition of DataViewWidget"""
+
 from PySide6.QtWidgets import QWidget, QLabel, QTableWidget, QTableWidgetItem, QVBoxLayout, QHBoxLayout, QAbstractScrollArea, QPushButton
 
-class DataViewWidget(QWidget):
-    """ displays keyframe data and uses cameracalculation to calculate parameters """
-    val = 0
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.init_ui()
+from COTabc import AbstractBaseWidget
+from COTdataclasses import GPSDatum, KeyFrame
 
-    def init_ui(self):
+
+class DataViewWidget(AbstractBaseWidget):
+    """ displays keyframe data and uses cameracalculation to calculate parameters """
+    
+
+    ################################## Implementation of abstract methods ###########################################
+
+    def _initialize(self):
+        pass
+
+    def _setup_ui(self):
         """ initializes the ui """
-        self.setWindowTitle("Data View")
+        self._widget.setWindowTitle("Data View")
 
         self.general_data_labels = [
             QLabel("Video File:"),
@@ -19,10 +27,13 @@ class DataViewWidget(QWidget):
         ]
 
         self.general_data_values = [
-            QLabel(),
-            QLabel(),
-            QLabel(),
-            QLabel()
+            QLabel(self._session_handler.session_data.video_file_path.split("/")[-1]),
+            QLabel(self._session_handler.session_data.video_file_path.split("/")[-1]),
+            QLabel(f"\
+                   {self._session_handler.session_data.image_width},\
+                   {self._session_handler.session_data.image_height}\
+            "),
+            QLabel("1435")
         ]
 
         self.general_data_layout = QVBoxLayout()
@@ -35,9 +46,9 @@ class DataViewWidget(QWidget):
             self.general_data_layout.addWidget(row_widget)
 
         self.table = QTableWidget()
-        self.table.setRowCount(17)
+        self.table.setRowCount(18)
         self.table.setVerticalHeaderLabels([
-            "Timestamp", "Latitude", "Longitude", "Altitude", "Speed", # GPSDatum
+            "Timestamp", "Time", "Latitude", "Longitude", "Altitude", "Speed", # GPSDatum
             "Image Point A", "Image Point B", "Image Point C", "Image Point D", # Image ponts
             "Focal Length", "Principal Distance",
             "Swing", "Tilt", "Pan",
@@ -54,28 +65,87 @@ class DataViewWidget(QWidget):
         layout.addWidget(self.table)
         layout.addWidget(save_button)
 
-        self.setLayout(layout)
+        self._widget.setLayout(layout)
+    
+    def react_to_keyframe_change(self, keyframe: KeyFrame):
+        self.update_table(keyframe)
 
-    def update_general_data(self, video_file, gps_data, image_dimension, track_gauge):
-        """ updates the upper widget with general data """
-        self.general_data_values[0].setText(video_file)
-        self.general_data_values[1].setText(gps_data)
-        self.general_data_values[2].setText(str(image_dimension))
-        self.general_data_values[2].setText(track_gauge)
+    def react_to_gpsdatum_change(self, gpsdatum: GPSDatum):
+        """ do nothing """
 
-    def update_table(self, data):
-        """ inserts a column behind average and calls average """
-        col = self.table.columnCount()
 
-        if col == 0:
-            col = 1
+    ################################## Implementation of class methods ###########################################
 
-        self.table.setColumnCount(col+1)
-        self.table.setHorizontalHeaderLabels([*[str(i) for i in range(1, col+1)], "Average"])
-        for row, value in enumerate(data):
-            item = QTableWidgetItem(str(value))
-            self.table.setItem(row, col-1, item)
-        self.update_average()
+    def update_table(self, keyframe: KeyFrame) -> None:
+        """ updates the data table """
+        col = 0
+        col_max = self.table.colorCount()
+
+        # if its the first keyframe, there is no column for average
+        if col_max == 0: col = 1
+
+        for col in range(col_max - 1):
+            # get the timestamp
+            item: QTableWidgetItem = self.table.item(0, col)
+            # if timestamp is already in the table, update the row
+            if keyframe.gps.timestamp == int(item.text()):
+                break
+        else:
+            # happens anyway, but for clarification
+            col = col_max - 1
+            # insert a row at the end before average and change horizontal header labels
+            self.table.insertColumn(col)
+            self.table.setHorizontalHeaderLabels([*[str(i) for i in range(1, col_max)], "Average"])
+            
+        # set data at determined
+        self.update_column(col, keyframe)
+        # self.update_average()
+
+    def update_column(self, col: int, keyframe: KeyFrame):
+        # set gps datum
+        if keyframe.gps is not None:
+            self.table.setItem(
+                0, col,
+                QTableWidgetItem(str(keyframe.gps.timestamp))
+            )
+            self.table.setItem(
+                1, col,
+                QTableWidgetItem(str(keyframe.gps.timeid))
+            )
+            self.table.setItem(
+                2, col,
+                QTableWidgetItem(str(keyframe.gps.latitude))
+            )
+            self.table.setItem(
+                3, col,
+                QTableWidgetItem(str(keyframe.gps.longitude))
+            )
+            self.table.setItem(
+                4, col,
+                QTableWidgetItem(str(keyframe.gps.altitude))
+            )
+            self.table.setItem(
+                5, col,
+                QTableWidgetItem(str(keyframe.gps.speed))
+            )
+
+        if keyframe.image_point is not None:
+            self.table.setItem(
+                6, col,
+                QTableWidgetItem(str(keyframe.image_point.A))
+            )
+            self.table.setItem(
+                7, col,
+                QTableWidgetItem(str(keyframe.image_point.B))
+            )
+            self.table.setItem(
+                8, col,
+                QTableWidgetItem(str(keyframe.image_point.C))
+            )
+            self.table.setItem(
+                9, col,
+                QTableWidgetItem(str(keyframe.image_point.D))
+            )
 
     def update_average(self):
         """ calculates the average of relevant values and writes them into the last column """
@@ -84,7 +154,7 @@ class DataViewWidget(QWidget):
         for row in range(self.table.rowCount()):
             value = "-"
             # only average calculated values
-            if row > 8:
+            if row > 9:
                 column = [float(self.table.item(row, col).text()) for col in range(cc-1)]
                 value = f"{sum(column)/len(column):.2f}"
             item = QTableWidgetItem(value)
