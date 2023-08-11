@@ -7,15 +7,13 @@ from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout
 
 from PySide6.QtQuickWidgets import QQuickWidget
 
-from .gpsdata import GPSData
-from .markermodel import MarkerModel
-# from gpsdata import GPSData
-# from markermodel import MarkerModel
+from tools.handler import GPSDataHandler
+from gpswidgets.markermodel import MarkerModel
 
 
 class InteractiveMapWindow(QWidget):
 
-    def __init__(self, _gpsdata: GPSData):
+    def __init__(self, _gpsdata: GPSDataHandler):
         super().__init__()
 
         self.current_index = 0
@@ -46,7 +44,7 @@ class InteractiveMapWindow(QWidget):
 
         # # Load the QML file
         print("Loading QML file")
-        self.map_widget.setSource(QUrl.fromLocalFile(".\\train\\navmap\\map.qml"))
+        self.map_widget.setSource(QUrl.fromLocalFile(".\\train\\gpswidgets\\map.qml"))
 
         # # Retrieve the root object from the QML file
         # self.root = self.engine.rootObjects()[0]
@@ -79,7 +77,7 @@ class InteractiveMapWindow(QWidget):
 if __name__ == '__main__':
 
     # prepare GPS data
-    gpsdata = GPSData()
+    gpsdata = GPSDataHandler()
     file_path = './data/gps_spring.csv'
     # header, data = gpsdata.read_csv_data(file_path)
 
@@ -98,7 +96,7 @@ if __name__ == '__main__':
     # engine.rootContext().setContextProperty('markerModel', model)
 
     # # Load the QML file
-    # engine.load(QUrl.fromLocalFile(".\\train\\navmap\\map.qml"))
+    # engine.load(QUrl.fromLocalFile(".\\train\\gpswidgets\\map.qml"))
 
     # # Retrieve the root object from the QML file
     # root = engine.rootObjects()[0]

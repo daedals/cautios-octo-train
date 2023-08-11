@@ -1,6 +1,6 @@
 
 import math
-from COTmath.calibration import CameraCalibration
+from tools.math import CameraCalibration
 
 def rotate_points(_points, _degree):
     radians = _degree/180*math.pi

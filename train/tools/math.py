@@ -1,5 +1,4 @@
 from math import sin, asin, cos, atan2, degrees, sqrt
-# import numpy as np
 
 class CameraCalibration:
     def __init__(self, image_points, real_world_width: int):

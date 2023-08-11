@@ -11,8 +11,8 @@ from PySide6.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWi
 from PySide6.QtCore import Qt, QTimer, Signal, Slot, QSize
 from PySide6.QtGui import QPixmap, QImage, QResizeEvent, QIntValidator
 
-from navmap.gpsdata import GPSData
 from COTdataclasses import GPSDatum, KeyFrame
+from tools.handler import GPSDataHandler
 
 class COTVideoPlayer(QLabel):
     """Integrates a Video loaded with OpenCV into a displayable Widget and provides functionality
@@ -32,7 +32,7 @@ class COTVideoPlayer(QLabel):
         # Initialize video properties
         self.video_path = ""
         self.video_capture = None
-        self.gpsdata: GPSData = None
+        self.gpsdata: GPSDataHandler = None
         self.current_timestamp_index = 0
         self.is_playing = False
 
@@ -40,7 +40,7 @@ class COTVideoPlayer(QLabel):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._update_video_frame_wrapper)
 
-    def load_video(self, video_path: str, gpsdata: GPSData):
+    def load_video(self, video_path: str, gpsdata: GPSDataHandler):
 
         # Load the video and set the timestamps from gpsdata
         self.video_path = video_path

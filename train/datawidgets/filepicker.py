@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget, QFileDialog,\
                               QLabel, QPushButton, QMenuBar
 from PySide6.QtGui import QAction
 
-from initwin import sessionrestore
+from tools.handler import SessionHandler
 
 class FilePickerWidget(QWidget):
     """
@@ -19,7 +19,7 @@ class FilePickerWidget(QWidget):
     valid_gpsdata_file_extensions = [".csv"]
 
 
-    def __init__(self, session: sessionrestore.SessionHandler, menubar: QMenuBar):
+    def __init__(self, session: SessionHandler, menubar: QMenuBar):
         super().__init__()
 
         self.session = session

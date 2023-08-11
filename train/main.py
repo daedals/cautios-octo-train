@@ -7,12 +7,13 @@ from PySide6.QtCore import Slot, Signal
 from PySide6.QtGui import QCloseEvent, QPixmap
 
 from COTdataclasses import KeyFrame, GPSDatum
-from initwin import filepicker, sessionrestore
-from navmap import gpsdata, linechartplotter
-from videopl import videoplayer
-from imagedit import imageeditor
+from tools.handler import GPSDataHandler, SessionHandler
 
-from COTmath.calibration import CameraCalibration
+from datawidgets import filepicker
+from gpswidgets import gpsdata, linechartplotter
+from imgwidgets import videoplayer, imageeditor
+
+from tools.math import CameraCalibration
 
 class MainWindow(QMainWindow):
     """ main window """
@@ -24,8 +25,8 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
 
         # Component setup
-        self._gpsdata: gpsdata.GPSData() = gpsdata.GPSData()
-        self.session = sessionrestore.SessionHandler()
+        self._gpsdata: GPSDataHandler() = GPSDataHandler()
+        self.session = SessionHandler()
         self.filepicker = filepicker.FilePickerWidget(self.session, menubar)
 
         self._linechart_window : linechartplotter.COTLineChartWidget = None

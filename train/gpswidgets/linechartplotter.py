@@ -8,7 +8,7 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 import pyqtgraph as pg
 
-from navmap.gpsdata import GPSData
+from tools.handler import GPSDataHandler
 from COTdataclasses import GPSDatum, KeyFrame
 
 class COTLineChartWidget(QWidget):
@@ -17,7 +17,7 @@ class COTLineChartWidget(QWidget):
     # signal when a point is clicked
     timestamp_requested = Signal(GPSDatum)
 
-    def __init__(self, _gpsdata: GPSData):
+    def __init__(self, _gpsdata: GPSDataHandler):
         super().__init__()
 
         self._gpsdata = _gpsdata
