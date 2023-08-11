@@ -11,14 +11,15 @@ from PySide6.QtWidgets import QPushButton, QVBoxLayout, QHBoxLayout, QLabel, QWi
 from PySide6.QtCore import Qt, QTimer, Signal, Slot, QSize
 from PySide6.QtGui import QPixmap, QImage, QResizeEvent, QIntValidator
 
+from COTabc import AbstractBaseWidget
 from COTdataclasses import GPSDatum, KeyFrame
-from tools.handler import GPSDataHandler
+from tools.handler import SessionHandler, GPSDataHandler, KeyFrameHandler
 
 class COTVideoPlayer(QLabel):
-    """Integrates a Video loaded with OpenCV into a displayable Widget and provides functionality
-    """
-    video_loaded = Signal(int, str)
+    """ Integrates a Video loaded with OpenCV into a displayable Widget and provides functionality """
+
     frame_updated = Signal(GPSDatum)
+
 
     def __init__(self, *args, **kwargs):
 
@@ -49,10 +50,8 @@ class COTVideoPlayer(QLabel):
 
         # read fps information for calculation purposes
         self.video_fps = self.video_capture.get(cv2.CAP_PROP_FPS)
-
-        # emit signal for parent, that video was loaded
-        last_gpsdatum: GPSDatum = self.gpsdata[-1]
-        self.video_loaded.emit(last_gpsdatum.timestamp, video_path.split("/")[-1])
+        self.image_width = cv2.CAP_PROP_FRAME_WIDTH
+        self.image_height = cv2.CAP_PROP_FRAME_HEIGHT
 
         # Set the initial timestamp index and update the video display
         self.current_timestamp_index = 0
@@ -67,26 +66,17 @@ class COTVideoPlayer(QLabel):
             self.timer.stop()
         return self.is_playing
 
-    @Slot(int)
     def jump_to_gpsdatum(self, sought_gpsdatum: GPSDatum):
         """ slot for signal from parent, looks for a certain timestamp """
-        last_gpsdatum: GPSDatum = self.gpsdata[-1]
-        sought_timestamp = sought_gpsdatum.timestamp
-        if sought_timestamp >= 0 and sought_timestamp <= last_gpsdatum.timestamp:
-            # find timestamp that is closest to the sought one
-            timestamps = [gpsdatum.timestamp for gpsdatum in self.gpsdata]
-            closest_timestamp = min(
-                timestamps,
-                key=lambda x:abs(x-sought_timestamp)
-            )
-            self.current_timestamp_index = timestamps.index(closest_timestamp)
-            self._update_video_frame()
+        self.current_timestamp_index = self.gpsdata.list_of_timestamps().index(sought_gpsdatum.timestamp)
+        self._update_video_frame()
 
     @Slot(int)
     def jump_to_index(self, sought_index: int):
         """ slot for signal from parent, looks for a certain index """
         if sought_index >= 0 and sought_index <= len(self.gpsdata):
             self.current_timestamp_index = sought_index
+            self._update_video_frame()
 
     def go_to_previous_timestamp(self):
         """ Move to the previous timestamp and update the video display """
@@ -100,18 +90,15 @@ class COTVideoPlayer(QLabel):
             self.current_timestamp_index += 1
             self._update_video_frame()
 
-    @property
-    def current_keyframe(self):
-        return KeyFrame(
-            self.gpsdata[self.current_timestamp_index],
-            self.pixmap_unscaled
-        )
-
     def _update_video_frame_wrapper(self):
         """ wrapper for update video frame that advances the frame number,
             to be called by the internal timer """
         self.current_timestamp_index = (self.current_timestamp_index + 1) % len(self.gpsdata)
         self._update_video_frame()
+        
+        # signal which frame was loaded
+        current_gpsdatum: GPSDatum = self.gpsdata[self.current_timestamp_index]
+        self.frame_updated.emit(current_gpsdatum)
 
     def _update_video_frame(self):
         # Get the current timestamp and set the video capture to the corresponding frame
@@ -130,9 +117,6 @@ class COTVideoPlayer(QLabel):
         # Display the frame in the widget
         q_pixmap = self.convert_cv_img_to_q_pixmap(frame)
         self.setPixmap(q_pixmap)
-
-        # signal which frame was loaded
-        self.frame_updated.emit(current_gpsdatum)
 
     def convert_cv_img_to_q_pixmap(self, cv_image: ndarray):
         """Provides functionality to convert opencvs ndarray to qts pixmap """
@@ -163,24 +147,33 @@ class COTVideoPlayer(QLabel):
         return super().resizeEvent(event)
 
 
-class VideoPlayerWidget(QWidget):
+class VideoPlayerWidget(AbstractBaseWidget):
     """Integrates COTVideoPlayer into a Widget and supplies UI for its functionality
 
     VideoPlayerWidget
     - loads a video
     - displays it with common functionality
-    - emits a signal on 'export'-button press
     """
-    frame_export_requested = Signal(KeyFrame)
-    frame_updated = Signal(GPSDatum)
 
-    def __init__(self):
-        super().__init__()
+    ################################## Implementation of abstract methods ###########################################
 
-        # Set up the UI
-        general_layout = QVBoxLayout()
-
+    def _initialize(self):
+        # Set up the VIdeoplayer
         self._cot_video_player = COTVideoPlayer()
+        self._cot_video_player.load_video(
+            self._session_handler.session_data.video_file_path,
+            self._gpsdata_handler
+        )
+
+        # connect wrapper for signal
+        self._cot_video_player.frame_updated.connect(self.frame_updated_wrapper)
+
+    def _setup_ui(self):
+        # Set general Info
+        self._widget.setWindowTitle("Video Player " + self._session_handler.session_data.video_file_path.split("/")[-1])
+
+        # Create general layout
+        general_layout = QVBoxLayout()
         general_layout.addWidget(self._cot_video_player)
 
         # Create buttons
@@ -206,71 +199,70 @@ class VideoPlayerWidget(QWidget):
 
         button_widget.setLayout(button_layout)
 
-        # create widget with jump to index functionality
+        # Create widget with jump to index functionality
         jump_widget = QWidget()
         jump_layout = QHBoxLayout()
 
-        # create sub widgets
+        # Create sub widgets
+        last_timestamp = self._gpsdata_handler[-1].timestamp
+
         textfield1 = QLabel("Jump to:")
         minimum_jump_tf = QLabel("0 ≤ ")
         self.jump_line_edit = QLineEdit("0")
-        self.maximum_jump_tf = QLabel("")
-        self.jump_button = QPushButton("Jump")
+        maximum_jump_tf = QLabel(str(last_timestamp))
+        jump_button = QPushButton("Jump")
+
+        self.jump_line_edit.setValidator(QIntValidator(0, last_timestamp, self._widget))
 
         # connect to signals
-        self.jump_button.clicked.connect(
-            lambda: self._cot_video_player.jump_to_gpsdatum(int(self.jump_line_edit.text()))
+        jump_button.clicked.connect(
+            lambda: self._gpsdata_handler.request_gpsdatum(
+                self._gpsdata_handler.closest_datum_by_timestamp(int(self.jump_line_edit.text()))
+                )
             )
-        self._cot_video_player.video_loaded.connect(self.configure_load_dependants)
 
         # add to layout
         jump_layout.addWidget(textfield1)
         jump_layout.addWidget(minimum_jump_tf)
         jump_layout.addWidget(self.jump_line_edit)
-        jump_layout.addWidget(self.maximum_jump_tf)
-        jump_layout.addWidget(self.jump_button)
+        jump_layout.addWidget(maximum_jump_tf)
+        jump_layout.addWidget(jump_button)
 
         jump_widget.setLayout(jump_layout)
 
         # add button widget to UI
         general_layout.addWidget(button_widget)
         general_layout.addWidget(jump_widget)
-        self.setLayout(general_layout)
+        self._widget.setLayout(general_layout)
+        
 
-        # connect wrapper for signal
-        self._cot_video_player.frame_updated.connect(self.frame_updated_wrapper)
+        # configure jump widget with last possible timestamp in text and as limiter
 
-    # external functions
-    def load_video(self, *args, **kwargs):
-        """ wrapper for load_video of COTVideoPlayer """
-        self._cot_video_player.load_video(*args, **kwargs)
+    def react_to_keyframe_change(self, keyframe: KeyFrame):
+        self.react_to_gpsdatum_change(keyframe.gps)
 
-    # external Slots
-    @Slot(int)
-    def set_frame_by_timestamp(self, timestamp: int) -> None:
-        """ Slot for other components to request a jump """
-        self._cot_video_player.jump_to_gpsdatum(timestamp)
+    def react_to_gpsdatum_change(self, gpsdatum: GPSDatum):
+        self.jump_line_edit.setText(str(gpsdatum.timestamp))
+        self._cot_video_player.jump_to_gpsdatum(gpsdatum)
+
+    ################################## Implementation of class methods ###########################################
 
     @Slot()
     def export_frame(self):
         """ Slot for export button, sends the current frames pixmap"""
-        keyframe = self._cot_video_player.current_keyframe
-        self.frame_export_requested.emit(keyframe)
+        keyframe = KeyFrame(
+            self._gpsdata_handler[self._cot_video_player.current_timestamp_index],
+            self._cot_video_player.pixmap_unscaled,
+            None, None, None
+        )
+
+        self._keyframe_handler.request_keyframe(keyframe)
 
     # internal Slots
     @Slot(int)
     def frame_updated_wrapper(self, gpsdatum: GPSDatum):
         """ wraps COT_Video_Players signal for other components to access """
-        self.frame_updated.emit(gpsdatum)
-
-    @Slot(int, str)
-    def configure_load_dependants(self, last_timestamp: int, video_path: str):
-        """ sets the text for the max jump and introduces an QIntValidator to the QLineEdit"""
-        self.setWindowTitle("Video Player " + video_path)
-
-        # configure jump widget with last possible timestamp in text and as limiter
-        self.maximum_jump_tf.setText(f" < {last_timestamp}")
-        self.jump_line_edit.setValidator(QIntValidator(0, last_timestamp, self))
+        self._gpsdata_handler.request_gpsdatum(gpsdatum)
 
     @Slot()
     def toggle_play_pause(self):

@@ -13,7 +13,7 @@ class FilePickerWidget(QWidget):
     """
     basic application for opening a file dialog/ restoring a session by choosing the respective option in the menubar
     """
-    importRequested = Signal()
+    import_requested = Signal()
 
     valid_video_file_extensions = [".mp4", ".avi", ".mov"]
     valid_gpsdata_file_extensions = [".csv"]
@@ -99,7 +99,13 @@ class FilePickerWidget(QWidget):
     def import_button_clicked(self):
         """ Emit a Signal on button click """
         if self.check_path_validity():
-            self.importRequested.emit()
+            self.session.initialize(
+                self.video_path,
+                self.gps_data_path,
+                None,
+                None
+            )
+            self.import_requested.emit()
 
     def check_path_validity(self):
         """ checks if the given filepaths are valid and have a correct extension

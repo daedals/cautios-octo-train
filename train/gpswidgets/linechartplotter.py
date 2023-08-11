@@ -4,52 +4,31 @@ Window for displaying Linecharts
 
 # import sys
 from PySide6.QtCore import Signal, Slot
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QMenuBar, QVBoxLayout, QWidget
 
 import pyqtgraph as pg
 
-from tools.handler import GPSDataHandler
 from COTdataclasses import GPSDatum, KeyFrame
+from COTabc import AbstractBaseWidget
+from tools.handler import GPSDataHandler, SessionHandler, KeyFrameHandler
 
-class COTLineChartWidget(QWidget):
+class COTLineChartWidget(AbstractBaseWidget):
     """ Line chart window specifically for speed and altitude against time """
 
     # signal when a point is clicked
     timestamp_requested = Signal(GPSDatum)
 
-    def __init__(self, _gpsdata: GPSDataHandler):
-        super().__init__()
-
-        self._gpsdata = _gpsdata
-        self._keyframes = []
-        self._keyframe_indicators = []
-
-        # Prepare data point
-        speed_list = [gpsdatum.speed for gpsdatum in _gpsdata.list_data()]
-        altitude_list = [gpsdatum.altitude for gpsdatum in _gpsdata.list_data()]
-        time_list = [gpsdatum.timestamp for gpsdatum in _gpsdata.list_data()]
-
-        # Set the application window title
-        self.setWindowTitle("Line Chart Window "+ _gpsdata.file_path.split("/")[-1])
-        self.setToolTip(
-            "Click on a data point to navigate to its timestamp.\n"+ 
-            "The yellow vertical line represents your position.\n"+
-            "Blue vertical lines represent keyframes."
-        )
-
-        # Create the main layout
-        main_layout = QVBoxLayout()
-
+    ################################## Implementation of abstract methods ###########################################
+    def _initialize(self):
         # Create two plot widgets for speed and altitude
         self.speed_plot = pg.PlotWidget(title="Speed vs. Time")
         self.altitude_plot = pg.PlotWidget(title="Altitude vs. Time")
 
-        self.setLayout(main_layout)
-
-        # Add the plot widgets to the main layout
-        main_layout.addWidget(self.speed_plot)
-        main_layout.addWidget(self.altitude_plot)
-
+        # Prepare data points
+        speed_list = [gpsdatum.speed for gpsdatum in self._gpsdata_handler.list_data()]
+        altitude_list = [gpsdatum.altitude for gpsdatum in self._gpsdata_handler.list_data()]
+        time_list = [gpsdatum.timestamp for gpsdatum in self._gpsdata_handler.list_data()]
+        
         # Set the horizontal range for both plots to display only 100 values
         self.speed_plot.setXRange(time_list[0] -50, time_list[-1] + 50)
         self.altitude_plot.setXRange(time_list[0] -50, time_list[-1] + 50)
@@ -84,8 +63,41 @@ class COTLineChartWidget(QWidget):
         # Connect the clicked signal of the ScatterPlotItem to handle interaction with data points
         self.speed_scatter.sigClicked.connect(self.on_point_clicked)
         self.altitude_scatter.sigClicked.connect(self.on_point_clicked)
+        
+        self._keyframes = []
+        self._keyframe_indicators = []
 
         # self.timestamp_requested.connect(self.update_plot_on_frame_change)
+
+    def _setup_ui(self):
+        # Set the application window title and general tooltip
+        self._widget.setWindowTitle("Line Chart Window "+ self._gpsdata_handler.file_path.split("/")[-1])
+        self._widget.setToolTip(
+            "Click on a data point to navigate to its timestamp.\n"+ 
+            "The yellow vertical line represents your position.\n"+
+            "Blue vertical lines represent keyframes."
+        )
+
+        # Create the main layout
+        main_layout = QVBoxLayout()
+
+        # Add the plot widgets to the main layout
+        main_layout.addWidget(self.speed_plot)
+        main_layout.addWidget(self.altitude_plot)
+
+        # set layout
+        self._widget.setLayout(main_layout)
+
+    def react_to_keyframe_change(self, keyframe: KeyFrame):
+        self.react_to_gpsdatum_change(keyframe.gps)
+
+    def react_to_gpsdatum_change(self, gpsdatum: GPSDatum):
+        """ updates visuals when a new frame is displayed """
+        self.speed_position_indicator.setPos(gpsdatum.timestamp)
+        self.altitude_position_indicator.setPos(gpsdatum.timestamp)
+
+
+    ################################## Implementation of class methods ###########################################
 
     @Slot(KeyFrame)
     def add_keyframe(self, keyframe: KeyFrame):
@@ -107,10 +119,10 @@ class COTLineChartWidget(QWidget):
         # Signal gives a list of at least one point, so we choose the middle one
         index = points[int(len(points)/2)].index()
 
-        # Emit signal
-        self.timestamp_requested.emit(self._gpsdata[index])
+        # request datum from handler
+        self._gpsdata_handler.request_gpsdatum(self._gpsdata_handler[index])
 
-    @Slot(int)
+    @Slot(GPSDatum)
     def update_plot_on_frame_change(self, gpsdatum: GPSDatum):
         """ updates visuals when a new frame is displayed """
         self.speed_position_indicator.setPos(gpsdatum.timestamp)

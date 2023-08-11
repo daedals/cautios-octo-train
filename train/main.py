@@ -2,18 +2,20 @@
 
 import sys
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QMenuBar
 from PySide6.QtCore import Slot, Signal
 from PySide6.QtGui import QCloseEvent, QPixmap
 
 from COTdataclasses import KeyFrame, GPSDatum
-from tools.handler import GPSDataHandler, SessionHandler
+
+from tools.handler import GPSDataHandler, SessionHandler, KeyFrameHandler
+from tools.math import CameraCalibration
 
 from datawidgets import filepicker
-from gpswidgets import gpsdata, linechartplotter
-from imgwidgets import videoplayer, imageeditor
+from gpswidgets.linechartplotter import COTLineChartWidget
+from imgwidgets import imageeditor
+from imgwidgets.videoplayer import VideoPlayerWidget
 
-from tools.math import CameraCalibration
 
 class MainWindow(QMainWindow):
     """ main window """
@@ -21,16 +23,19 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # menubar creation for filepicker
-        menubar = self.menuBar()
+        # create menubar for widget initialization
+        menubar: QMenuBar = self.menuBar()
+
+        # create handler
+        self._session_handler: SessionHandler = SessionHandler()
+        self._gpsdata_handler: GPSDataHandler = GPSDataHandler()
+        self._keyframe_handler: KeyFrameHandler = KeyFrameHandler()
 
         # Component setup
-        self._gpsdata: GPSDataHandler() = GPSDataHandler()
-        self.session = SessionHandler()
-        self.filepicker = filepicker.FilePickerWidget(self.session, menubar)
+        self.filepicker = filepicker.FilePickerWidget(self._session_handler, menubar)
 
-        self._linechart_window : linechartplotter.COTLineChartWidget = None
-        self._videoplayer_window : videoplayer.VideoPlayerWidget = None
+        self._linechart_window : COTLineChartWidget = COTLineChartWidget()
+        self._videoplayer_window : VideoPlayerWidget = VideoPlayerWidget()
 
         self.active_windows = []
 
@@ -38,20 +43,31 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Main Window (Exit all on close)")
 
         # connect window initialization to filepickers import signal
-        self.filepicker.importRequested.connect(self.initialize)
+        self.filepicker.import_requested.connect(self.initialize)
 
         self.setCentralWidget(self.filepicker)
 
     def initialize(self):
         """ initialize data and windows, if already initialized show windows if closed """
 
-        self._gpsdata.read_csv_data(self.filepicker.gps_data_path)
+        self._gpsdata_handler.read_csv_data(self.filepicker.gps_data_path)
 
-        self.initialize_linechart_window()
+        self._linechart_window.initialize(
+            self._session_handler,
+            self._gpsdata_handler,
+            self._keyframe_handler
+        )
+        self._linechart_window.show()
+
+        self._videoplayer_window.initialize(
+            self._session_handler,
+            self._gpsdata_handler,
+            self._keyframe_handler
+        )
+        self._videoplayer_window.show()
+
+        # self.initialize_linechart_window()
         self.initialize_interactive_map()
-        self.initialize_videoplayer()
-
-        self.connect_signals()
 
     def initialize_linechart_window(self):
         """ initialization of the linechart window"""
@@ -60,7 +76,7 @@ class MainWindow(QMainWindow):
             self.active_windows.remove(self._linechart_window)
             self._linechart_window = None
 
-        self._linechart_window = linechartplotter.COTLineChartWidget(self._gpsdata)
+        self._linechart_window = COTLineChartWidget(self._gpsdata_handler)
         self.active_windows.append(self._linechart_window)
         self._linechart_window.show()
 
@@ -80,23 +96,10 @@ class MainWindow(QMainWindow):
         self._videoplayer_window = videoplayer.VideoPlayerWidget()
         self._videoplayer_window.load_video(
             self.filepicker.video_path,
-            self._gpsdata
+            self._gpsdata_handler
             )
         self.active_windows.append(self._videoplayer_window)
         self._videoplayer_window.show()
-
-    def connect_signals(self):
-        """ connect all nessecary signals after all windows have been created """
-        self._videoplayer_window.frame_export_requested.connect(self.open_image_editor)
-        self._videoplayer_window.frame_export_requested.connect(
-            self._linechart_window.add_keyframe
-        )
-        self._videoplayer_window.frame_updated.connect(
-            self._linechart_window.update_plot_on_frame_change
-        )
-
-        self._linechart_window.timestamp_requested.connect(self._videoplayer_window.set_frame_by_timestamp)
-
 
     @Slot(KeyFrame)
     def open_image_editor(self, keyframe: KeyFrame):
@@ -120,7 +123,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         """ extend innate closeEvent to cleanup windows """
         self.cleanup()
-        self.session.save()
+        self._session_handler.save()
 
         return super().closeEvent(event)
 

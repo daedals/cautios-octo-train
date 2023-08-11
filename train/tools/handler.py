@@ -9,13 +9,19 @@ SessionHandler
 import json
 import csv
 from datetime import time, datetime
-from COTdataclasses import GPSDatum, SessionData
+
+from PySide6.QtCore import Signal, QObject
+
+from COTdataclasses import GPSDatum, SessionData, KeyFrame
 
 
-class GPSDataHandler:
+class GPSDataHandler(QObject):
     """Data container for GPS data from specific csv format"""
 
+    gpsdatum_requested = Signal(GPSDatum)
+
     def __init__(self) -> None:
+        super().__init__()
         self.data = []
         self._file_path :str = None
 
@@ -85,6 +91,9 @@ class GPSDataHandler:
                         f'{exception}: Row {csv_reader.line_num} with values {row} could not be converted.'
                     )
 
+    def request_gpsdatum(self, gpsdatum: GPSDatum):
+        self.gpsdatum_requested.emit(gpsdatum)
+
     def list_data(self):
         """ generator for list of coordinates """
         gpsdatum: GPSDatum
@@ -110,24 +119,46 @@ class GPSDataHandler:
         """ provides list of timestamps"""
         return [gpsdatum.timestamp for gpsdatum in self.data]
 
+    def closest_datum_by_timestamp(self, timestamp: int) -> GPSDatum:
+        
+        # find timestamp that is closest to the sought one
+        timestamps = [*self.list_of_timestamps()]
+        closest_timestamp = min(
+            timestamps,
+            key=lambda x:abs(x-timestamp)
+        )
+        return self.data[timestamps.index(timestamp)]
+        
+
 
     @property
     def file_path(self):
         """ getter for file path """
         return self._file_path
 
-"""proof of concept for a module that changes json data from within a window"""
 
-class KeyFrameHandler:
+class KeyFrameHandler(QObject):
     """ handles keyframes """
 
+    keyframe_requested = Signal(KeyFrame)
+
     def __init__(self) -> None:
+        super().__init__()
         self.data = []
 
-class SessionHandler:
+    def add_keyframe(self, keyframe: KeyFrame):
+        if keyframe not in self.data:
+            self.data.append(keyframe)
+
+    def request_keyframe(self, keyframe: KeyFrame):
+        self.keyframe_requested.emit(keyframe)
+    
+
+class SessionHandler(QObject):
     """ wrapper for dict able to read from json"""
 
-    def __init__(self):
+    def __init__(self) -> None:
+        super().__init__()
         self.json_data = {}
         self.session_data: SessionData = None
         self._path = "session_data.json"
