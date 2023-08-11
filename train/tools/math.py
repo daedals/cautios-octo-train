@@ -1,8 +1,8 @@
-from math import sin, asin, cos, atan2, degrees, sqrt
+from math import sin, asin, cos, atan2, degrees, sqrt, radians
 
 from COTdataclasses import KeyFrame, IntrinsicCameraParameters, ExtrinsicCameraParameters
 
-def determine_camera_paremeters(keyframe: KeyFrame, width: int) -> (IntrinsicCameraParameters, ExtrinsicCameraParameters):
+def determine_camera_parameters(keyframe: KeyFrame, width: int) -> (IntrinsicCameraParameters, ExtrinsicCameraParameters):
 
     a, b, c, d = assign_points_to_assumed_order(keyframe.image_point.to_list())
 
@@ -103,14 +103,14 @@ def determine_camera_paremeters(keyframe: KeyFrame, width: int) -> (IntrinsicCam
     y_offset = planar_distance * cos(pan_angle)
 
     intrinsics = IntrinsicCameraParameters(
-        focal_length,
+        abs(focal_length),
         principal_length
     )
 
     extrinsics = ExtrinsicCameraParameters(
-        swing_angle,
-        tilt_angle,
-        pan_angle,
+        degrees(swing_angle),
+        degrees(tilt_angle),
+        degrees(pan_angle),
         x_offset,
         y_offset,
         z_offset
@@ -144,76 +144,25 @@ def assign_points_to_assumed_order(_image_points):
 
     return a, b, c, d
 
-# # Calculate variables
-# def get_abc(x_2D, y_2D):
+def distance_between_geo_coordinates(lat_1: float, lon_1: float, lat_2: float, lon_2: float) -> float:
+    """ calculates the distance between 2 gps coordinates
 
-#     a = (x_2D[1]-x_2D[0], x_2D[2]-x_2D[0], x_2D[3]-x_2D[1], x_2D[3]-x_2D[2])
-#     b = (y_2D[1]-y_2D[0], y_2D[2]-y_2D[0], y_2D[3]-y_2D[1], y_2D[3]-y_2D[2])
-#     c = ((x_2D[0]*y_2D[1]-x_2D[1]*y_2D[0], x_2D[0]*y_2D[2]-x_2D[2]*y_2D[0],
-#           x_2D[1]*y_2D[3]-x_2D[3]*y_2D[1], x_2D[2]*y_2D[3]-x_2D[3]*y_2D[2]))
-#     return a, b, c
+    formula copied from:
+    https://stackoverflow.com/questions/365826/calculate-distance-between-2-gps-coordinates
+    """
 
-# # Calculate the swing angle
-# def get_s(a, b, c):
-#     num = ((b[2]*b[3]*a[1]*c[0]) - (b[1]*b[3]*a[2]*c[0])
-#          + (b[0]*b[2]*a[3]*c[1]) - (b[2]*b[3]*a[0]*c[1])
-#          + (b[1]*b[3]*a[0]*c[2]) - (b[0]*b[1]*a[3]*c[2])
-#          + (b[0]*b[1]*a[2]*c[3]) - (b[0]*b[2]*a[1]*c[3]))
+    # earth radius in meter
+    earth_radius = 6371000
 
-#     den = ((a[2]*a[3]*b[1]*c[0]) - (a[1]*a[3]*b[2]*c[0])
-#          + (a[0]*a[2]*b[3]*c[1]) - (a[2]*a[3]*b[0]*c[1])
-#          + (a[1]*a[3]*b[0]*c[2]) - (a[0]*a[1]*b[3]*c[2])
-#          + (a[0]*a[1]*b[2]*c[3]) - (a[0]*a[2]*b[1]*c[3]))
+    # difference between both latitudes and longitudes in radians
+    d_lat = radians(lat_2-lat_1)
+    d_lon = radians(lon_2-lon_1)
 
-#     s = atan2(num, den)
-#     return s
+    # both latitudes in radians
+    lat_1 = radians(lat_1)
+    lat_2 = radians(lat_2)
 
-# # Calculate the camera parameters using Fung and Yung's method
-# def FY(x_2D, y_2D, a, b, c, s, w):
-#     # Calculate the tilt angle
-#     num = (((a[2]*c[1]-a[1]*c[2])*sin(s) + (b[2]*c[1]-b[1]*c[2])*cos(s)) *
-#            ((a[3]*c[0]-a[0]*c[3])*sin(s) + (b[3]*c[0]-b[0]*c[3])*cos(s)))
-#     den = (((a[3]*c[0]-a[0]*c[3])*cos(s) + (b[0]*c[3]-b[3]*c[0])*sin(s)) *
-#            ((b[2]*c[1]-b[1]*c[2])*sin(s) + (a[1]*c[2]-a[2]*c[1])*cos(s)))
+    a = sin(d_lat/2) * sin(d_lat/2) + sin(d_lon/2) * sin(d_lon/2) * cos(lat_1) * cos(lat_2)
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
 
-#     # Bodge :(
-#     nd = num/den
-#     if nd < 0:
-#         print("Bodge")
-#         nd = -nd
-
-#     t = asin(-sqrt(nd))
-
-#     # Calculate the pan angle
-#     num = sin(t) * ((b[2]*c[1]-b[1]*c[2])*sin(s) + (a[1]*c[2]-a[2]*c[1])*cos(s))
-
-#     den = (a[2]*c[1]-a[1]*c[2])*sin(s) + (b[2]*c[1]-b[1]*c[2])*cos(s)
-
-#     p = atan2(num, den)
-
-#     # Calculate the focal length
-#     num = c[2] * cos(p) * cos(t)
-
-#     den = (b[2]*sin(p)*cos(s) - b[2]*cos(p)*sin(t)*sin(s)
-#          + a[2]*sin(p)*sin(s) + a[2]*cos(p)*sin(t)*cos(s))
-
-#     f = num / den
-
-#     # Calculate the camera height
-#     num = w * (f*sin(t) + x_2D[0]*cos(t)*sin(s) + y_2D[0]*cos(t)*cos(s)) * (f*sin(t) + x_2D[2]*cos(t)*sin(s) + y_2D[2]*cos(t)*cos(s))
-
-#     den = (-(f*sin(t) + x_2D[0]*cos(t)*sin(s) + y_2D[0]*cos(t)*cos(s)) *
-#             (x_2D[2]*cos(p)*sin(s) - x_2D[2]*sin(p)*sin(t)*cos(s) + y_2D[2]*cos(p)*cos(s) + y_2D[2]*sin(p)*sin(t)*sin(s))
-#            +(f*sin(t) + x_2D[2]*cos(t)*sin(s) + y_2D[2]*cos(t)*cos(s)) *
-#             (x_2D[0]*cos(p)*sin(s) - x_2D[0]*sin(p)*sin(t)*cos(s) + y_2D[0]*cos(p)*cos(s) + y_2D[0]*sin(p)*sin(t)*sin(s)))
-
-#     h = sin(t) * num/den
-
-#     #if f < 0:
-#     #    f = -f
-#     #    s = s + pi
-#     #if h < 0:
-#     #    h = -h
-#     #    p = p + pi
-
-#     return [s, t, p, f, h]
+    return earth_radius * c

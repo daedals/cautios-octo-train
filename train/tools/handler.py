@@ -8,12 +8,13 @@ SessionHandler
 
 import json
 import csv
+from math import atan2
 from datetime import time, datetime
 
 from PySide6.QtCore import Signal, QObject
 
 from COTdataclasses import GPSDatum, SessionData, KeyFrame, IntrinsicCameraParameters, ExtrinsicCameraParameters
-from tools.math import determine_camera_paremeters
+from tools.math import determine_camera_parameters, distance_between_geo_coordinates
 
 
 class GPSDataHandler(QObject):
@@ -82,7 +83,7 @@ class GPSDataHandler(QObject):
                         int(course),
                         # altitude is given in cm, converted to m
                         float(int(alt)) / 10**2
-
+                        # gradient is added later
                     )
 
                     self.data.append(row_data)
@@ -91,6 +92,54 @@ class GPSDataHandler(QObject):
                     print(
                         f'{exception}: Row {csv_reader.line_num} with values {row} could not be converted.'
                     )
+            
+            self.add_gradient()
+
+    def add_gradient(self):
+        """ adds the gradient value to all gpsdata """
+        item_count = len(self.data)
+        if item_count == 0:
+            return
+        
+        gpsdatum: GPSDatum
+        for i, gpsdatum in enumerate(self.data):
+            # skip first and last item
+            if i == 0 or i == item_count - 1:
+                gpsdatum.gradient = 0
+
+            gradient = 0
+            gradients = []
+
+            previous: GPSDatum = self.data[i-1]
+            following: GPSDatum = self.data[i+1]
+
+            # gradient from previous to current
+            distance = distance_between_geo_coordinates(
+                previous.latitude, previous.longitude,
+                gpsdatum.latitude, gpsdatum.longitude
+            )
+
+            d_altitude = gpsdatum.altitude - previous.altitude
+
+            if distance > 0:
+                gradients.append(atan2(d_altitude, distance))
+
+            # gradient from current to following
+            distance = distance_between_geo_coordinates(
+                gpsdatum.latitude, gpsdatum.longitude,
+                following.latitude, following.longitude
+            )
+
+            d_altitude = following.altitude - gpsdatum.altitude
+
+            if distance > 0:
+                gradients.append(atan2(d_altitude, distance))
+
+            # take mean of calculated gradients
+            if len(gradients) > 0:
+                gradient = sum(gradients)/len(gradients)
+            
+            gpsdatum.gradient = gradient
 
     def request_gpsdatum(self, gpsdatum: GPSDatum):
         self.gpsdatum_requested.emit(gpsdatum)
@@ -165,7 +214,7 @@ class KeyFrameHandler(QObject):
         if keyframe.gps is not None and keyframe.image_point is not None and keyframe.intrinsics is None:
             intrinsics: IntrinsicCameraParameters
             extrinsics: ExtrinsicCameraParameters 
-            intrinsics, extrinsics = determine_camera_paremeters(keyframe, 1435)
+            intrinsics, extrinsics = determine_camera_parameters(keyframe, 1435)
             keyframe.intrinsics = intrinsics
             keyframe.extrinsics = extrinsics
 

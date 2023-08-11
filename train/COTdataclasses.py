@@ -35,6 +35,8 @@ class GPSDatum:
     course: int
     # altitude in meters above 0
     altitude: float
+    # gradient estimated in degree
+    gradient: float = 0
 
     def __eq__(self, other):
         if not isinstance(other, GPSDatum):
