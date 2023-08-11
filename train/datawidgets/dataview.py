@@ -56,13 +56,13 @@ class DataViewWidget(AbstractBaseWidget):
 
         self.table.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
-        save_button = QPushButton("Save")
-        save_button.clicked.connect(self.save_data)
+        self.save_button = QPushButton("Save")
+        self.save_button.clicked.connect(self.save_data)
 
         layout = QVBoxLayout()
         layout.addLayout(self.general_data_layout)
         layout.addWidget(self.table)
-        layout.addWidget(save_button)
+        layout.addWidget(self.save_button)
 
         self._widget.setLayout(layout)
     
@@ -199,12 +199,6 @@ class DataViewWidget(AbstractBaseWidget):
                     value = f"{sum(row_data)/len(row_data):.4f}"
             item = QTableWidgetItem(value)
             self.table.setItem(row, col_max-1, item)
-
-
-    def save_data(self):
-        self.val += 1
-        table_data = [123456, 37.7749, -122.4194, 50, 20, 100, 200, 300, 400, 45, 30, 60, 5, 3, 3, self.val, 5]
-        self.update_table(table_data)
 
 if __name__ == "__main__":
     from PySide6.QtWidgets import QApplication

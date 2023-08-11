@@ -2,14 +2,13 @@
 
 import sys
 
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QMenuBar
+from PySide6.QtWidgets import QApplication, QMainWindow, QMenuBar
 from PySide6.QtCore import Slot, Signal
-from PySide6.QtGui import QCloseEvent, QPixmap
+from PySide6.QtGui import QCloseEvent
 
-from COTdataclasses import KeyFrame, GPSDatum
 from tools.handler import GPSDataHandler, SessionHandler, KeyFrameHandler
 
-from datawidgets import filepicker
+from datawidgets.filepicker import FilePickerWidget
 from datawidgets.dataview import DataViewWidget
 
 from gpswidgets.linechartplotter import COTLineChartWidget
@@ -29,11 +28,10 @@ class MainWindow(QMainWindow):
 
         # create handler
         self._session_handler: SessionHandler = SessionHandler()
+        self._filepicker = FilePickerWidget(self._session_handler, menubar)
         self._gpsdata_handler: GPSDataHandler = GPSDataHandler()
-        self._keyframe_handler: KeyFrameHandler = KeyFrameHandler()
+        self._keyframe_handler: KeyFrameHandler = KeyFrameHandler(menubar)
 
-        # Component setup
-        self.filepicker = filepicker.FilePickerWidget(self._session_handler, menubar)
 
         self._linechart_window: COTLineChartWidget = COTLineChartWidget()
         self._videoplayer_window: VideoPlayerWidget = VideoPlayerWidget()
@@ -51,14 +49,14 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Main Window (Exit all on close)")
 
         # connect window initialization to filepickers import signal
-        self.filepicker.import_requested.connect(self.initialize)
+        self._filepicker.import_requested.connect(self.initialize)
 
-        self.setCentralWidget(self.filepicker)
+        self.setCentralWidget(self._filepicker)
 
     def initialize(self):
         """ initialize data and windows, if already initialized show windows if closed """
 
-        self._gpsdata_handler.read_csv_data(self.filepicker.gps_data_path)
+        self._gpsdata_handler.read_csv_data(self._filepicker.gps_data_path)
 
         self._linechart_window.initialize(
             self._session_handler,

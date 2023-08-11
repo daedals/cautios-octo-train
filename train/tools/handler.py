@@ -11,7 +11,9 @@ import csv
 from math import atan2
 from datetime import time, datetime
 
+from PySide6.QtWidgets import QMenuBar, QMenu
 from PySide6.QtCore import Signal, QObject
+from PySide6.QtGui import QAction
 
 from COTdataclasses import GPSDatum, SessionData, KeyFrame, IntrinsicCameraParameters, ExtrinsicCameraParameters
 from tools.math import determine_camera_parameters, distance_between_geo_coordinates
@@ -111,10 +113,11 @@ class GPSDataHandler(QObject):
             gradient = 0
             gradients = []
 
+            # get the preavious and following gpsdata
             previous: GPSDatum = self.data[i-1]
             following: GPSDatum = self.data[i+1]
 
-            # gradient from previous to current
+            # calculate gradient from previous to current
             distance = distance_between_geo_coordinates(
                 previous.latitude, previous.longitude,
                 gpsdatum.latitude, gpsdatum.longitude
@@ -125,7 +128,7 @@ class GPSDataHandler(QObject):
             if distance > 0:
                 gradients.append(atan2(d_altitude, distance))
 
-            # gradient from current to following
+            # calculate gradient from current to following
             distance = distance_between_geo_coordinates(
                 gpsdatum.latitude, gpsdatum.longitude,
                 following.latitude, following.longitude
@@ -193,10 +196,11 @@ class KeyFrameHandler(QObject):
 
     keyframe_requested = Signal(KeyFrame)
 
-    def __init__(self) -> None:
+    def __init__(self, menubar: QMenuBar) -> None:
         super().__init__()
         self.current_keyframe: KeyFrame = None
         self.data = []
+        self.menu: QMenu = menubar.addMenu("Jump to Key Frame")
 
     def from_gpsdatum(self, gpsdatum: GPSDatum) -> KeyFrame:
         try:
@@ -209,7 +213,11 @@ class KeyFrameHandler(QObject):
         # add keyframe if its not already in there
         if keyframe not in self.data:
             self.data.append(keyframe)
-        print(f"keyframe changed, number of keyframes is {len(self.data)}")
+
+            # create an action in the main windows menubar
+            request_keyframe_action = QAction(str(keyframe.gps.timestamp), self._widget)
+            request_keyframe_action.triggered.connect(lambda: self.request_keyframe(keyframe))
+            self.menu.addAction(request_keyframe_action)
 
         # if keyframe has sufficient data, apply camera calibration
         if keyframe.gps is not None and keyframe.image_point is not None and keyframe.intrinsics is None:
