@@ -157,9 +157,9 @@ class KeyFrameHandler(QObject):
 
     def request_keyframe(self, keyframe: KeyFrame) -> None:
         # add keyframe if its not already in there
-        print(f"keyframe changed, number of keyframes is {len(self.data)}")
         if keyframe not in self.data:
             self.data.append(keyframe)
+        print(f"keyframe changed, number of keyframes is {len(self.data)}")
 
         # if keyframe has sufficient data, apply camera calibration
         if keyframe.gps is not None and keyframe.image_point is not None and keyframe.intrinsics is None:

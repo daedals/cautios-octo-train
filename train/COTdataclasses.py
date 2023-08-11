@@ -36,6 +36,11 @@ class GPSDatum:
     # altitude in meters above 0
     altitude: float
 
+    def __eq__(self, other):
+        if not isinstance(other, GPSDatum):
+            return NotImplemented
+        return self.timestamp == other.timestamp
+
 @dataclass
 class LocationDatum:
     """ location with camera offset x, y, z relative to optical axis' intersection with world X-Y plane"""
@@ -81,3 +86,8 @@ class KeyFrame:
     image_point: ImagePointContainer
     intrinsics: IntrinsicCameraParameters
     extrinsics: ExtrinsicCameraParameters
+
+    def __eq__(self, other):
+        if not isinstance(other, KeyFrame):
+            return NotImplemented
+        return self.gps.timestamp == other.gps.timestamp

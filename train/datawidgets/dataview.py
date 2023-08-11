@@ -100,34 +100,34 @@ class DataViewWidget(AbstractBaseWidget):
             
         # set data at determined
         self.update_column(col, keyframe)
-        # self.update_average()
+        self.update_average()
 
     def update_column(self, col: int, keyframe: KeyFrame):
         # set gps datum
         if keyframe.gps is not None:
             self.table.setItem(
                 0, col,
-                QTableWidgetItem(str(keyframe.gps.timestamp))
+                QTableWidgetItem(f"{keyframe.gps.timestamp}")
             )
             self.table.setItem(
                 1, col,
-                QTableWidgetItem(str(keyframe.gps.timeid))
+                QTableWidgetItem(f"{keyframe.gps.timeid}")
             )
             self.table.setItem(
                 2, col,
-                QTableWidgetItem(str(keyframe.gps.latitude))
+                QTableWidgetItem(f"{keyframe.gps.latitude:.2f}")
             )
             self.table.setItem(
                 3, col,
-                QTableWidgetItem(str(keyframe.gps.longitude))
+                QTableWidgetItem(f"{keyframe.gps.longitude:.2f}")
             )
             self.table.setItem(
                 4, col,
-                QTableWidgetItem(str(keyframe.gps.altitude))
+                QTableWidgetItem(f"{keyframe.gps.altitude:.2f}")
             )
             self.table.setItem(
                 5, col,
-                QTableWidgetItem(str(keyframe.gps.speed))
+                QTableWidgetItem(f"{keyframe.gps.speed:.2f}")
             )
 
         if keyframe.image_point is not None:
@@ -147,19 +147,54 @@ class DataViewWidget(AbstractBaseWidget):
                 9, col,
                 QTableWidgetItem(str(keyframe.image_point.D))
             )
+        if keyframe.intrinsics is not None:
+            self.table.setItem(
+                10, col,
+                QTableWidgetItem(f"{keyframe.intrinsics.focal_length:.4f}")
+            )
+            self.table.setItem(
+                11, col,
+                QTableWidgetItem(f"{keyframe.intrinsics.principal_length:.4f}")
+            )
+        if keyframe.extrinsics is not None:
+            self.table.setItem(
+                12, col,
+                QTableWidgetItem(f"{keyframe.extrinsics.swing:.4f}")
+            )
+            self.table.setItem(
+                13, col,
+                QTableWidgetItem(f"{keyframe.extrinsics.tilt:.4f}")
+            )
+            self.table.setItem(
+                14, col,
+                QTableWidgetItem(f"{keyframe.extrinsics.pan:.4f}")
+            )
+            self.table.setItem(
+                15, col,
+                QTableWidgetItem(f"{keyframe.extrinsics.z_offset:.4f}")
+            )
+            self.table.setItem(
+                16, col,
+                QTableWidgetItem(f"{keyframe.extrinsics.x_offset:.4f}")
+            )
+            self.table.setItem(
+                17, col,
+                QTableWidgetItem(f"{keyframe.extrinsics.y_offset:.4f}")
 
+            )
     def update_average(self):
         """ calculates the average of relevant values and writes them into the last column """
-        cc = self.table.columnCount()
+        col_max = self.table.columnCount()
 
         for row in range(self.table.rowCount()):
             value = "-"
             # only average calculated values
             if row > 9:
-                column = [float(self.table.item(row, col).text()) for col in range(cc-1)]
-                value = f"{sum(column)/len(column):.2f}"
+                row_data = [float(self.table.item(row, col).text()) for col in range(col_max-1) if self.table.item(row, col) is not None]
+                if len(row_data) > 0:
+                    value = f"{sum(row_data)/len(row_data):.4f}"
             item = QTableWidgetItem(value)
-            self.table.setItem(row, cc-1, item)
+            self.table.setItem(row, col_max-1, item)
 
 
     def save_data(self):
