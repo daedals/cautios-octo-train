@@ -136,6 +136,34 @@ class CameraCalibration:
 
         return a, b, c, d
 
+def assign_points_to_assumed_order(_image_points):
+    """ assigns points to their assumed order in the paper, returns a, b, c, d
+    The equation of the paper assume a certain order of points namely:
+        -------> Y
+    |  A    C
+    |
+    |  B    D
+    v
+    X
+    """
+    # sort by addition of their coordinate values
+    sorted_points = sorted(_image_points, key= lambda point: point[0]+point[1])
+    # we can assume a it sorted to either ABCD or ACBD (this might not always be true but in case of this application it is safe to assume so)
+    a = sorted_points[0]
+    d = sorted_points[3]
+
+    # compare x values of second and third point
+    if sorted_points[1][0] > sorted_points[2][0]:
+        b = sorted_points[1]
+        c = sorted_points[2]
+    else:
+        b = sorted_points[2]
+        c = sorted_points[1]
+
+    print(_image_points)
+    print(a, b, c, d)
+
+    return a, b, c, d
 
 # Calculate variables
 def get_abc(x_2D, y_2D):

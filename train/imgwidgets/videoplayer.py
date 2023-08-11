@@ -173,6 +173,9 @@ class VideoPlayerWidget(AbstractBaseWidget):
             self._gpsdata_handler
         )
 
+        self._session_handler.session_data.image_width = self._cot_video_player.image_width
+        self._session_handler.session_data.image_height = self._cot_video_player.image_height
+
         # connect wrapper for signal
         self._cot_video_player.frame_updated.connect(self.frame_updated_wrapper)
 

@@ -13,7 +13,7 @@ from tools.math import CameraCalibration
 
 from datawidgets import filepicker
 from gpswidgets.linechartplotter import COTLineChartWidget
-from imgwidgets import imageeditor
+from imgwidgets.imageeditor import ImageViewerWidget
 from imgwidgets.videoplayer import VideoPlayerWidget
 
 
@@ -34,10 +34,15 @@ class MainWindow(QMainWindow):
         # Component setup
         self.filepicker = filepicker.FilePickerWidget(self._session_handler, menubar)
 
-        self._linechart_window : COTLineChartWidget = COTLineChartWidget()
-        self._videoplayer_window : VideoPlayerWidget = VideoPlayerWidget()
+        self._linechart_window: COTLineChartWidget = COTLineChartWidget()
+        self._videoplayer_window: VideoPlayerWidget = VideoPlayerWidget()
+        self._image_editor_window: ImageViewerWidget = ImageViewerWidget()
 
-        self.active_windows = []
+        self.active_windows = [
+            self._linechart_window,
+            self._videoplayer_window,
+            self._image_editor_window
+        ]
 
         # UI setup
         self.setWindowTitle("Main Window (Exit all on close)")
@@ -66,8 +71,13 @@ class MainWindow(QMainWindow):
         )
         self._videoplayer_window.show()
 
-        # self.initialize_linechart_window()
-        self.initialize_interactive_map()
+        self._image_editor_window.initialize(
+            self._session_handler,
+            self._gpsdata_handler,
+            self._keyframe_handler
+        )
+        # don't show, shows itself, when first keyframe is exported
+
 
     def initialize_linechart_window(self):
         """ initialization of the linechart window"""

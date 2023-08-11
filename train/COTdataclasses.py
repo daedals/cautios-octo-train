@@ -65,11 +65,13 @@ class IntrinsicCameraParameters:
 @dataclass
 class ImagePointContainer:
     """ just conviniently stores 4 image points """
-    A: QPointF
-    B: QPointF
-    C: QPointF
-    D: QPointF
+    A: list
+    B: list
+    C: list
+    D: list
 
+    def to_list(self) -> list:
+        return [self.A, self.B, self.C, self.D]
 
 @dataclass
 class KeyFrame:

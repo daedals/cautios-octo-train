@@ -1,5 +1,4 @@
-"""Contains class definitions for InteractableGraphicsView and ImageViewerWidget
-"""
+""" Contains class definitions for InteractableGraphicsView and ImageViewerWidget """
 
 import sys
 from PySide6.QtCore import Signal, Slot, QLineF, QRectF
@@ -7,38 +6,44 @@ from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget, \
                               QGraphicsView, QGraphicsScene, QHBoxLayout
 from PySide6.QtGui import QPixmap, QPen, QColor, QMouseEvent
 
-from COTdataclasses import KeyFrame
+from COTdataclasses import KeyFrame, GPSDatum, ImagePointContainer
+from COTabc import AbstractBaseWidget
+from tools.math import assign_points_to_assumed_order
 
 class InteractableGraphicsView(QGraphicsView):
     """ Renders choosen key frame and handles mouse events for an interactable image
 
     Renders exactly 4 points and lines connecting them
     """
-    pointsChanged = Signal(int, int, int)
+    point_changed = Signal(int, int, int)
 
-    def __init__(self, _pixmap: QPixmap, *args, **kwargs):
+    def __init__(self, width: int, height: int, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # prepare graphics scene
-        self._original_image: QPixmap = _pixmap
-        self.scene = QGraphicsScene(
-            0, 0,
-            self._original_image.width(), self._original_image.height()
-            )
+        self.scene = QGraphicsScene(0, 0, width, height, self)
         self.setScene(self.scene)
-        self.scene.addPixmap(self._original_image)
-        self.setSceneRect(0, 0, self._original_image.width(), self._original_image.height())
-        # self.ensureVisible(0, 0, self._original_image.width(), self._original_image.height())
+        # self.setSceneRect(0, 0, width, height)
 
-        # prepare internal point storage
+    def load_keyframe(self, keyframe: KeyFrame) -> None:
+        # is called when keyframe was created or loaded
+        self._original_image: QPixmap = keyframe.pixmap
+
         self.points = []
+        if keyframe.image_point is not None:
+            for i, [x, y] in enumerate(keyframe.image_point.to_list()):
+                self.points.append([x, y])
+                self.point_changed.emit(i, x, y)
+
         self.current_point_index = 0
+        self.draw_points()
 
     def draw_points(self):
         """ clear graphicsscene and draw points and lines from buffer """
         # prepare scene and pen
         self.scene.clear()
         self.scene.addPixmap(self._original_image)
+        self.setSceneRect(0, 0, self._original_image.width(), self._original_image.height())
         pen = QPen(QColor(255, 0, 0))
 
         # draw lines between
@@ -78,37 +83,40 @@ class InteractableGraphicsView(QGraphicsView):
 
         # Add points
         if len(self.points) > self.current_point_index:
-            self.points[self.current_point_index] = (x, y)
+            self.points[self.current_point_index] = [x, y]
         else:
-            self.points.append((x, y))
+            self.points.append([x, y])
 
         # Draw points
         self.draw_points()
 
         # Emit Signal that point changed
-        self.pointsChanged.emit(self.current_point_index, x, y)
+        self.point_changed.emit(self.current_point_index, x, y)
 
         # Move to the next point index
         if len(self.points) < 4:
             self.current_point_index = (self.current_point_index + 1)%4
 
 
-class ImageViewerWidget(QWidget):
+class ImageViewerWidget(AbstractBaseWidget):
     """ Standalone Window providing utility for InteractableGraphicsView """
 
-    export_image_points_requested = Signal(list)
+    ################################## Implementation of abstract methods ###########################################
 
-    def __init__(self, _keyframe: KeyFrame):
-        super().__init__()
+    def _initialize(self):
+        pass
 
+    def _setup_ui(self):
         # Set up the UI
         layout = QVBoxLayout()
 
-        self._keyframe = _keyframe
-
         # Create a QGraphicsView to allow interactive drawing
-        self.view = InteractableGraphicsView(_keyframe.pixmap)
-        self.view.pointsChanged.connect(self.on_points_changed)
+        self.view = InteractableGraphicsView(
+            self._session_handler.session_data.image_width,
+            self._session_handler.session_data.image_height
+        )
+
+        self.view.point_changed.connect(self.on_points_changed)
         layout.addWidget(self.view)
 
         # Create buttons for points and connect them to the point_clicked function
@@ -119,7 +127,7 @@ class ImageViewerWidget(QWidget):
         # Connect 4 buttons to a point each
         for i in range(1, 5):
             button = QPushButton(f"Point {i}")
-            button.clicked.connect(lambda checked=False, point=i: self.point_clicked(checked, point))
+            button.clicked.connect(lambda checked=False, point=i: self.point_button_clicked(checked, point))
             self.buttons.append(button)
             button_row_layout.addWidget(button)
         button_row.setLayout(button_row_layout)
@@ -134,15 +142,34 @@ class ImageViewerWidget(QWidget):
         layout.addWidget(self.export_button)
 
         # Set the main layout
-        self.setLayout(layout)
+        self._widget.setLayout(layout)
 
-    def point_clicked(self, _, point):
+    def react_to_keyframe_change(self, keyframe: KeyFrame):
+        # reset buttons
+        for i in range(1, 5):
+            self.buttons[i].setText(f"Point {i}")
+        # remember current keyframe for exporting them later
+        self.current_keyframe = keyframe
+        self.view.load_keyframe(keyframe)
+        self.show()
+
+    def react_to_gpsdatum_change(self, gpsdatum: GPSDatum):
+        pass
+
+
+    ################################## Implementation of class methods ###########################################
+
+    def point_button_clicked(self, _, point: int):
         """ Function to handle point button clicks """
-        self.view.set_current_index(point -1)
+        self.view.set_current_index(point - 1)
 
     def export_button_clicked(self):
         """ Emit the "exportImagePointRequest" signal with the current points list """
-        self.export_image_points_requested.emit(self.view.points)
+        image_points = self.view.points
+        a, b, c, d = assign_points_to_assumed_order(image_points)
+        ipc = ImagePointContainer(a, b, c, d)
+        self.current_keyframe.image_point = ipc
+        self._keyframe_handler.request_keyframe(self.current_keyframe)
 
     @Slot(int, int, int)
     def on_points_changed(self, i, x, y):

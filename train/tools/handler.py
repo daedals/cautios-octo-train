@@ -144,13 +144,21 @@ class KeyFrameHandler(QObject):
 
     def __init__(self) -> None:
         super().__init__()
+        self.current_keyframe: KeyFrame = None
         self.data = []
 
-    def add_keyframe(self, keyframe: KeyFrame):
+    def from_gpsdatum(self, gpsdatum: GPSDatum) -> KeyFrame:
+        try:
+            index = [keyframe.gps for keyframe in self.data].index(gpsdatum)
+            return self.data[index]
+        except ValueError:
+            return None
+
+    def request_keyframe(self, keyframe: KeyFrame) -> None:
         if keyframe not in self.data:
             self.data.append(keyframe)
 
-    def request_keyframe(self, keyframe: KeyFrame):
+        self.current_keyframe = keyframe
         self.keyframe_requested.emit(keyframe)
     
 

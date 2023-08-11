@@ -69,7 +69,11 @@ class AbstractBaseWidget(ABC):
 
     @Slot(GPSDatum)
     def _react_to_gpsdatum_change(self, gpsdatum: GPSDatum):
-        self.react_to_gpsdatum_change(gpsdatum)
+        keyframe = self._keyframe_handler.from_gpsdatum(gpsdatum)
+        if keyframe is not None:
+            self.react_to_keyframe_change(keyframe)
+        else:
+            self.react_to_gpsdatum_change(gpsdatum)
     
     @abstractmethod
     def react_to_gpsdatum_change(self, gpsdatum: GPSDatum):

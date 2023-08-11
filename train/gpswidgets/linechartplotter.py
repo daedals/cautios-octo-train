@@ -15,9 +15,6 @@ from tools.handler import GPSDataHandler, SessionHandler, KeyFrameHandler
 class COTLineChartWidget(AbstractBaseWidget):
     """ Line chart window specifically for speed and altitude against time """
 
-    # signal when a point is clicked
-    timestamp_requested = Signal(GPSDatum)
-
     ################################## Implementation of abstract methods ###########################################
     def _initialize(self):
         # Create two plot widgets for speed and altitude
@@ -67,8 +64,6 @@ class COTLineChartWidget(AbstractBaseWidget):
         self._keyframes = []
         self._keyframe_indicators = []
 
-        # self.timestamp_requested.connect(self.update_plot_on_frame_change)
-
     def _setup_ui(self):
         # Set the application window title and general tooltip
         self._widget.setWindowTitle("Line Chart Window "+ self._gpsdata_handler.file_path.split("/")[-1])
@@ -89,18 +84,7 @@ class COTLineChartWidget(AbstractBaseWidget):
         self._widget.setLayout(main_layout)
 
     def react_to_keyframe_change(self, keyframe: KeyFrame):
-        self.react_to_gpsdatum_change(keyframe.gps)
-
-    def react_to_gpsdatum_change(self, gpsdatum: GPSDatum):
-        """ updates visuals when a new frame is displayed """
-        self.speed_position_indicator.setPos(gpsdatum.timestamp)
-        self.altitude_position_indicator.setPos(gpsdatum.timestamp)
-
-
-    ################################## Implementation of class methods ###########################################
-
-    @Slot(KeyFrame)
-    def add_keyframe(self, keyframe: KeyFrame):
+        # add a vertical line as an indicator for a keyframe
         self._keyframes.append(keyframe)
         speed_keyframe_indicator = pg.InfiniteLine(keyframe.gpsdata.timestamp, angle= 90, movable=False, pen="b")
         altitude_keyframe_indicator = pg.InfiniteLine(keyframe.gpsdata.timestamp, angle= 90, movable=False, pen="b")
@@ -111,6 +95,18 @@ class COTLineChartWidget(AbstractBaseWidget):
         self._keyframe_indicators.append(
             [speed_keyframe_indicator, altitude_keyframe_indicator]
         )
+
+        # update position indicators
+        self.speed_position_indicator.setPos(keyframe.gps.timestamp)
+        self.altitude_position_indicator.setPos(keyframe.gps.timestamp)
+
+    def react_to_gpsdatum_change(self, gpsdatum: GPSDatum):
+        """ updates visuals when a new frame is displayed """
+        self.speed_position_indicator.setPos(gpsdatum.timestamp)
+        self.altitude_position_indicator.setPos(gpsdatum.timestamp)
+
+
+    ################################## Implementation of class methods ###########################################
 
     @Slot(list)
     def on_point_clicked(self, _, points):
