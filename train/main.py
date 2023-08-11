@@ -86,8 +86,6 @@ class MainWindow(QMainWindow):
         )
         self._dataview_window.show()
 
-
-
     def cleanup(self):
         """ cleanup to be called at closeEvent """
         for window in self.active_windows:

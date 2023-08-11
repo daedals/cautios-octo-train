@@ -56,13 +56,17 @@ class DataViewWidget(AbstractBaseWidget):
 
         self.table.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
 
-        self.save_button = QPushButton("Save")
-        self.save_button.clicked.connect(self.save_data)
+        # create save button and connect it to session handlers save function
+        save_button = QPushButton("Save")
+        save_button.clicked.connect(
+            lambda: self._session_handler.save_keyframes(self._keyframe_handler)
+        )
 
+        # create layout
         layout = QVBoxLayout()
         layout.addLayout(self.general_data_layout)
         layout.addWidget(self.table)
-        layout.addWidget(self.save_button)
+        layout.addWidget(save_button)
 
         self._widget.setLayout(layout)
     

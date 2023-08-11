@@ -274,3 +274,39 @@ class SessionHandler(QObject):
     def get(self, *args, **kwargs):
         """ wrapper for dict getter """
         return self.json_data.get(*args, **kwargs)
+
+    def save_keyframes(self, keyframe_handler: KeyFrameHandler):
+        """ saves key frame data to csv """
+        path = f".\data\{self.session_data.creation_date.strftime("%y-%m-%d_%X")}_keyframes.csv"
+        with open(path, "w", encoding="ascii") as file:
+            writer = csv.writer(file)
+
+            writer.writerow({
+                "timestamp",
+                "altitude",
+                "gradient",
+                "focallength",
+                "principallength",
+                "swing",
+                "tilt",
+                "pan",
+                "xoffset",
+                "yoffset",
+                "zoffset"
+            })
+
+            keyframe: KeyFrame
+            for keyframe in keyframe_handler.data:
+                writer.writerow([
+                    keyframe.gps.timestamp,
+                    keyframe.gps.altitude,
+                    keyframe.gps.gradient,
+                    keyframe.intrinsics.focal_length,
+                    keyframe.intrinsics.principal_length,
+                    keyframe.extrinsics.swing,
+                    keyframe.extrinsics.tilt,
+                    keyframe.extrinsics.pan,
+                    keyframe.extrinsics.x_offset,
+                    keyframe.extrinsics.y_offset,
+                    keyframe.extrinsics.z_offset
+                ])
