@@ -66,16 +66,16 @@ class COTVideoPlayer(QLabel):
             self.timer.stop()
         return self.is_playing
 
-    def jump_to_gpsdatum(self, sought_gpsdatum: GPSDatum):
+    def jump_to_gpsdatum(self, gpsdatum: GPSDatum):
         """ slot for signal from parent, looks for a certain timestamp """
-        self.current_timestamp_index = self.gpsdata.list_of_timestamps().index(sought_gpsdatum.timestamp)
+        self.current_timestamp_index = self.gpsdata.list_of_timestamps().index(gpsdatum.timestamp)
         self._update_video_frame()
 
     @Slot(int)
-    def jump_to_index(self, sought_index: int):
+    def jump_to_index(self, index: int):
         """ slot for signal from parent, looks for a certain index """
-        if sought_index >= 0 and sought_index <= len(self.gpsdata):
-            self.current_timestamp_index = sought_index
+        if index >= 0 and index <= len(self.gpsdata):
+            self.current_timestamp_index = index
             self._update_video_frame()
 
     def go_to_previous_timestamp(self):
@@ -84,11 +84,19 @@ class COTVideoPlayer(QLabel):
             self.current_timestamp_index -= 1
             self._update_video_frame()
 
+            # signal which frame was loaded
+            current_gpsdatum: GPSDatum = self.gpsdata[self.current_timestamp_index]
+            self.frame_updated.emit(current_gpsdatum)
+
     def go_to_next_timestamp(self):
         """ Move to the next timestamp and update the video display """
         if self.current_timestamp_index < len(self.gpsdata) - 1:
             self.current_timestamp_index += 1
             self._update_video_frame()
+
+            # signal which frame was loaded
+            current_gpsdatum: GPSDatum = self.gpsdata[self.current_timestamp_index]
+            self.frame_updated.emit(current_gpsdatum)
 
     def _update_video_frame_wrapper(self):
         """ wrapper for update video frame that advances the frame number,
