@@ -75,7 +75,10 @@ class InteractiveMapWindow(QWidget):
 
 
 if __name__ == '__main__':
+    main()
 
+
+def main():
     # prepare GPS data
     gpsdata = GPSDataHandler()
     file_path = './data/gps_spring.csv'
