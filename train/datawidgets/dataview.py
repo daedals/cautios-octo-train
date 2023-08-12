@@ -47,7 +47,7 @@ class DataViewWidget(AbstractBaseWidget):
         self.table = QTableWidget()
         self.table.setRowCount(19)
         self.table.setVerticalHeaderLabels([
-            "Timestamp", "Time", "Latitude", "Longitude", "Altitude", "Speed", "Gradient" # GPSDatum
+            "Timestamp", "Time", "Latitude", "Longitude", "Altitude", "Speed", "Gradient", # GPSDatum
             "Image Point A", "Image Point B", "Image Point C", "Image Point D", # Image ponts
             "Focal Length", "Principal Distance",
             "Swing", "Tilt", "Pan",

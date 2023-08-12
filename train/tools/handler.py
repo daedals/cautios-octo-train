@@ -215,7 +215,7 @@ class KeyFrameHandler(QObject):
             self.data.append(keyframe)
 
             # create an action in the main windows menubar
-            request_keyframe_action = QAction(str(keyframe.gps.timestamp), self._widget)
+            request_keyframe_action = QAction(str(keyframe.gps.timestamp))
             request_keyframe_action.triggered.connect(lambda: self.request_keyframe(keyframe))
             self.menu.addAction(request_keyframe_action)
 
@@ -277,7 +277,8 @@ class SessionHandler(QObject):
 
     def save_keyframes(self, keyframe_handler: KeyFrameHandler):
         """ saves key frame data to csv """
-        path = f".\data\{self.session_data.creation_date.strftime("%y-%m-%d_%X")}_keyframes.csv"
+        creation_date_as_string = self.session_data.creation_date.strftime("%y-%m-%d_%X")
+        path = f".\data\{creation_date_as_string}_keyframes.csv"
         with open(path, "w", encoding="ascii") as file:
             writer = csv.writer(file)
 
