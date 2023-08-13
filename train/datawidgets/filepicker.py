@@ -15,9 +15,6 @@ class FilePickerWidget(QWidget):
     """
     import_requested = Signal()
 
-    valid_video_file_extensions = [".mp4", ".avi", ".mov"]
-    valid_gpsdata_file_extensions = [".csv"]
-
 
     def __init__(self, session: SessionHandler, menubar: QMenuBar):
         super().__init__()
@@ -117,12 +114,12 @@ class FilePickerWidget(QWidget):
             return False
         if not os.path.exists(self.gps_data_path):
             return False
-        if not any(self.gps_data_path.lower().endswith(ext) for ext in self.valid_gpsdata_file_extensions):
-            return False
+        # if not any(self.gps_data_path.lower().endswith(ext) for ext in self.valid_gpsdata_file_extensions):
+        #     return False
         if not os.path.exists(self.video_path):
             return False
-        if not any(self.video_path.lower().endswith(ext) for ext in self.valid_video_file_extensions):
-            return False
+        # if not any(self.video_path.lower().endswith(ext) for ext in self.valid_video_file_extensions):
+        #     return False
         return True
 
     @property

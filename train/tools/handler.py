@@ -8,6 +8,7 @@ SessionHandler
 
 import json
 import csv
+import os
 from math import atan2
 from datetime import time, datetime
 
@@ -278,7 +279,7 @@ class SessionHandler(QObject):
     def save_keyframes(self, keyframe_handler: KeyFrameHandler):
         """ saves key frame data to csv """
         creation_date_as_string = self.session_data.creation_date.strftime("%y-%m-%d_%X")
-        path = f".\data\{creation_date_as_string}_keyframes.csv"
+        path = f"{creation_date_as_string}_keyframes.csv"
         with open(path, "w", encoding="ascii") as file:
             writer = csv.writer(file)
 
